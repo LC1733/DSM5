@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>DSM-5 · Dashboard Clínico de Estudio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#09090b;
+  --bg2:#0f1117;
+  --bg3:#141820;
+  --blue:#1a73c8;
+  --blue2:#2490e8;
+  --blue-dim:rgba(26,115,200,0.12);
+  --blue-dim2:rgba(36,144,232,0.18);
+  --gold:#e8c84a;
+  --gold-dim:rgba(232,200,74,0.12);
+  --surface:rgba(255,255,255,0.04);
+  --surface2:rgba(255,255,255,0.07);
+  --border:rgba(255,255,255,0.08);
+  --border2:rgba(255,255,255,0.13);
+  --t1:#e8eaf0;
+  --t2:#9198b0;
+  --t3:#4a5070;
+  --red:#f87171;
+  --green:#4ade80;
+  --r:16px;--r2:10px;--r3:6px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--t1);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 60% 40% at 80% 0%,rgba(26,115,200,0.12) 0%,transparent 55%),
+    radial-gradient(ellipse 40% 30% at 0% 70%,rgba(26,115,200,0.06) 0%,transparent 55%);
+}
+.app{position:relative;z-index:1;display:flex;min-height:100vh}
+
+/* ── SIDEBAR ── */
+.sidebar{width:260px;min-width:260px;background:var(--bg2);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;
+  overflow-y:auto;z-index:100;transition:transform .3s}
+.sb-header{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+.sb-brand{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}
+.sb-brand .dsm{font-family:'IBM Plex Mono',monospace;font-size:1.5rem;font-weight:600;
+  color:var(--blue2);letter-spacing:-.01em}
+.sb-brand .five{font-family:'IBM Plex Mono',monospace;font-size:1.5rem;font-weight:600;
+  color:var(--gold)}
+.sb-sub{font-size:10px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;line-height:1.4}
+.sb-sec{padding:14px 10px 5px;font-size:9px;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--t3)}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 12px;margin:2px 5px;
+  border-radius:var(--r3);cursor:pointer;font-size:12.5px;font-weight:500;color:var(--t2);
+  transition:all .15s;border:1px solid transparent}
+.nav-item:hover{background:var(--surface2);color:var(--t1)}
+.nav-item.active{background:var(--blue-dim2);color:var(--blue2);border-color:rgba(36,144,232,0.25)}
+.nav-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.nav-count{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:9px;
+  background:rgba(255,255,255,0.06);border-radius:4px;padding:2px 6px;color:var(--t3)}
+
+.sb-footer{margin-top:auto;padding:12px}
+.sb-reset{display:flex;align-items:center;gap:7px;width:100%;padding:8px 11px;
+  background:rgba(248,113,113,0.07);border:1px solid rgba(248,113,113,0.18);
+  border-radius:var(--r3);color:#fca5a5;font-family:'IBM Plex Sans',sans-serif;
+  font-size:11px;font-weight:600;cursor:pointer;transition:all .2s}
+.sb-reset:hover{background:rgba(248,113,113,0.14);color:var(--red)}
+.sb-reset svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+
+/* ── MENU BTN ── */
+.menu-btn{display:none;position:fixed;top:12px;left:12px;z-index:200;
+  background:var(--bg2);border:1px solid var(--border2);border-radius:8px;
+  padding:8px;cursor:pointer;color:var(--t1)}
+@media(max-width:900px){.menu-btn{display:flex}.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.main{margin-left:0!important;padding:18px!important}#footer-dsm{margin-left:0!important}}
+
+/* ── MAIN ── */
+.main{margin-left:260px;flex:1;padding:32px 40px 60px}
+
+/* ── PANELS ── */
+.panel{display:none}
+.panel.active{display:block;animation:fu .28s ease}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── TYPE ── */
+.page-title{font-size:clamp(1.6rem,3vw,2.3rem);font-weight:700;line-height:1.1;margin-bottom:7px;letter-spacing:-.02em}
+.page-sub{font-size:13.5px;color:var(--t2);line-height:1.7;max-width:680px;margin-bottom:26px}
+.sec-h{font-size:1rem;font-weight:600;margin-bottom:12px;color:var(--t1)}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:9px;
+  font-weight:500;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;
+  border-radius:4px;border:1px solid;margin-bottom:10px}
+.b-blue{background:var(--blue-dim);color:var(--blue2);border-color:rgba(36,144,232,.3)}
+.b-gold{background:var(--gold-dim);color:var(--gold);border-color:rgba(232,200,74,.3)}
+.b-red{background:rgba(248,113,113,.09);color:var(--red);border-color:rgba(248,113,113,.25)}
+.b-green{background:rgba(74,222,128,.09);color:var(--green);border-color:rgba(74,222,128,.25)}
+
+/* ── SURFACE CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r)}
+.card-p{padding:22px}
+
+/* ── KPI ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+@media(max-width:860px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:14px}
+.kpi-lbl{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:3px}
+.kpi-val{font-family:'IBM Plex Mono',monospace;font-size:1.7rem;font-weight:600}
+.kpi-sub{font-size:10px;color:var(--t3);margin-top:2px}
+.kpi-val.blue{color:var(--blue2)}.kpi-val.gold{color:var(--gold)}.kpi-val.green{color:var(--green)}
+
+/* ── TABLE ── */
+.tw{overflow-x:auto;margin:12px 0}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:var(--blue-dim);color:var(--blue2);font-weight:600;font-size:9px;
+  text-transform:uppercase;letter-spacing:.07em;padding:8px 12px;text-align:left;
+  border-bottom:1px solid rgba(36,144,232,.2)}
+td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--t2);vertical-align:top;line-height:1.55}
+tr:hover td{background:rgba(255,255,255,0.02)}
+td strong{color:var(--t1);font-weight:600}
+td em{color:var(--gold);font-style:normal;font-weight:500}
+
+/* ── CONTENT BLOCKS ── */
+.cg{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:800px){.cg{grid-template-columns:1fr}}
+.ib{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--r2);padding:13px;margin-bottom:9px}
+.ib .lbl{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.ib p,.ib li{font-size:12.5px;color:var(--t2);line-height:1.75}
+.ib ul,.ib ol{padding-left:14px}
+.ib li{margin-bottom:2px}
+.hl{background:var(--blue-dim);border-left:3px solid var(--blue2);
+  padding:11px 15px;border-radius:0 8px 8px 0;font-size:12.5px;color:var(--t1);line-height:1.7;margin:10px 0}
+.wn{background:var(--gold-dim);border-left:3px solid var(--gold);
+  padding:11px 15px;border-radius:0 8px 8px 0;font-size:12.5px;color:var(--t1);line-height:1.7;margin:10px 0}
+.cr{background:rgba(248,113,113,.08);border-left:3px solid var(--red);
+  padding:11px 15px;border-radius:0 8px 8px 0;font-size:12.5px;color:var(--t1);line-height:1.7;margin:10px 0}
+
+/* ── ACCORDION ── */
+.acc{border-top:1px solid var(--border);margin-top:10px}
+.acc-item{border-bottom:1px solid var(--border)}
+.acc-trigger{width:100%;background:none;border:none;padding:12px 3px;display:flex;
+  align-items:center;justify-content:space-between;cursor:pointer;
+  font-family:'IBM Plex Sans',sans-serif;font-size:13.5px;font-weight:600;
+  color:var(--t1);text-align:left;gap:10px;transition:color .15s}
+.acc-trigger:hover,.acc-trigger.open{color:var(--blue2)}
+.acc-arr{width:14px;height:14px;flex-shrink:0;transition:transform .22s;
+  stroke:var(--t3);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.acc-trigger.open .acc-arr{transform:rotate(180deg);stroke:var(--blue2)}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .33s ease}
+.acc-body.open{max-height:4000px}
+.acc-inner{padding:2px 3px 16px;font-size:12.5px;color:var(--t2);line-height:1.75}
+
+/* ── BUSCADOR ── */
+.search-bar{background:rgba(0,0,0,0.3);border:1px solid var(--border2);border-radius:var(--r2);
+  color:var(--t1);font-family:'IBM Plex Sans',sans-serif;font-size:13px;
+  padding:10px 15px;width:100%;max-width:520px;outline:none;transition:border-color .2s;margin-bottom:14px}
+.search-bar:focus{border-color:rgba(36,144,232,.45)}
+.search-bar::placeholder{color:var(--t3)}
+.search-result{background:rgba(255,255,255,0.03);border:1px solid var(--border);
+  border-radius:var(--r2);padding:13px;margin-bottom:8px;cursor:pointer;transition:all .15s}
+.search-result:hover{border-color:rgba(36,144,232,.3);background:var(--blue-dim)}
+.sr-name{font-size:13.5px;font-weight:600;color:var(--t1);margin-bottom:3px}
+.sr-cat{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--blue2);
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.sr-code{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--gold)}
+.sr-desc{font-size:12px;color:var(--t2);line-height:1.6;margin-top:4px}
+
+/* ── QUIZ ── */
+.filter-row{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px}
+.fbtn{font-size:11px;font-weight:600;padding:5px 13px;border-radius:var(--r3);
+  border:1px solid var(--border2);background:var(--surface);color:var(--t2);cursor:pointer;transition:all .15s}
+.fbtn:hover,.fbtn.active{background:var(--blue-dim2);color:var(--blue2);border-color:rgba(36,144,232,.35)}
+.q-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:24px;margin-bottom:16px}
+.q-tag{font-family:'IBM Plex Mono',monospace;font-size:9px;text-transform:uppercase;
+  letter-spacing:.07em;margin-bottom:11px;display:inline-block}
+.q-prompt{font-size:14px;font-weight:500;line-height:1.75;color:var(--t1);margin-bottom:16px}
+.q-opts{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:flex-start;gap:10px;background:rgba(0,0,0,0.2);
+  border:1px solid var(--border2);border-radius:var(--r2);padding:12px 14px;
+  cursor:pointer;font-size:13px;color:var(--t2);transition:all .15s;text-align:left;width:100%;line-height:1.6}
+.q-opt:hover{border-color:rgba(36,144,232,.35);color:var(--t1)}
+.q-opt.selected{background:var(--blue-dim);border-color:rgba(36,144,232,.45);color:var(--t1)}
+.q-opt.correct{background:rgba(74,222,128,.09);border-color:rgba(74,222,128,.4);color:var(--green)}
+.q-opt.wrong{background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.3);color:var(--red)}
+.opt-l{width:24px;height:24px;border-radius:5px;background:rgba(255,255,255,0.07);
+  display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;
+  font-size:10px;font-weight:600;flex-shrink:0;margin-top:1px}
+.btn{font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:12.5px;
+  padding:9px 18px;border-radius:var(--r3);border:none;cursor:pointer;transition:all .18s}
+.btn-p{background:var(--blue);color:#fff}.btn-p:hover{background:var(--blue2)}
+.btn-p:disabled{opacity:.35;cursor:not-allowed}
+.btn-g{background:var(--surface);border:1px solid var(--border2);color:var(--t2)}
+.btn-g:hover{color:var(--t1)}
+.q-exp{margin-top:14px;background:rgba(0,0,0,0.2);border:1px solid var(--border2);border-radius:var(--r2);padding:13px}
+.q-exp .lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:6px}
+.q-exp p{font-size:12.5px;color:var(--t2);line-height:1.75}
+.q-nav{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:9px;margin-bottom:18px}
+.q-cnt{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--t3)}
+
+/* ── FLASHCARDS ── */
+.fc-wrap{max-width:620px;margin:0 auto}
+.fc-ctrl{display:flex;align-items:center;justify-content:center;gap:11px;margin-bottom:18px}
+.fc-counter{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--t3)}
+.flashcard{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);
+  padding:36px 32px;text-align:center;min-height:190px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;cursor:pointer;position:relative;
+  overflow:hidden;transition:all .2s;margin-bottom:16px}
+.flashcard::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(26,115,200,0.05),transparent 60%);pointer-events:none}
+.flashcard:hover{border-color:rgba(36,144,232,.3)}
+.fc-side{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.12em;color:var(--t3);margin-bottom:12px}
+.fc-tag2{font-size:10px;color:var(--t3);margin-bottom:5px}
+.fc-text{font-size:1rem;font-weight:600;line-height:1.65;color:var(--t1)}
+.fc-hint{font-size:11px;color:var(--t3);margin-top:16px}
+
+/* ── CIE TABLE ── */
+.cie-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.cie-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:14px}
+.cie-code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gold);margin-bottom:4px;font-weight:500}
+.cie-name{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:3px}
+.cie-desc{font-size:11.5px;color:var(--t2);line-height:1.6}
+
+/* ── MODAL / TOAST ── */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.78);display:flex;
+  align-items:center;justify-content:center;z-index:999;opacity:0;pointer-events:none;
+  transition:opacity .2s;backdrop-filter:blur(4px)}
+.modal-ov.open{opacity:1;pointer-events:all}
+.modal-box{background:#0f1117;border:1px solid rgba(248,113,113,.25);border-radius:14px;
+  padding:26px;max-width:380px;width:90%;transform:scale(.95);transition:transform .2s}
+.modal-ov.open .modal-box{transform:scale(1)}
+.modal-title{font-size:1rem;font-weight:700;margin-bottom:6px}
+.modal-sub{font-size:12px;color:var(--t2);margin-bottom:16px;line-height:1.6}
+.modal-opts{display:flex;flex-direction:column;gap:6px;margin-bottom:20px}
+.modal-opt{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:8px;
+  border:1px solid var(--border2);background:var(--surface);cursor:pointer;font-size:12px;color:var(--t2)}
+.modal-opt input[type=checkbox]{accent-color:var(--blue2);width:13px;height:13px;flex-shrink:0}
+.modal-actions{display:flex;gap:8px}
+.m-confirm{flex:1;background:var(--red);color:#fff;font-family:'IBM Plex Sans',sans-serif;
+  font-weight:700;font-size:12px;padding:9px;border-radius:8px;border:none;cursor:pointer}
+.m-cancel{flex:1;background:var(--surface);border:1px solid var(--border2);color:var(--t2);
+  font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:12px;padding:9px;border-radius:8px;cursor:pointer}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(14px);
+  background:#0f1117;border:1px solid rgba(36,144,232,.28);border-radius:10px;
+  padding:10px 18px;font-size:12px;font-weight:600;color:var(--blue2);
+  opacity:0;transition:all .28s;z-index:1000;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── PBAR ── */
+.pbar{height:6px;border-radius:99px;background:rgba(255,255,255,0.06);overflow:hidden;margin:6px 0}
+.pfill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--blue),var(--blue2));transition:width .5s}
+.pfill.gold{background:linear-gradient(90deg,var(--gold),#f5a623)}
+
+@media(max-width:600px){.cg{grid-template-columns:1fr}.kpi-grid{grid-template-columns:1fr 1fr}}
+.caso-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:24px;margin-bottom:16px}
+.caso-num{font-family:"IBM Plex Mono",monospace;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px}
+.caso-vignette{font-size:14px;line-height:1.85;color:var(--t1);margin-bottom:16px;padding:16px;background:rgba(255,255,255,0.03);border-radius:var(--r2);border-left:3px solid var(--gold)}
+.caso-question{font-size:13px;font-weight:600;color:var(--blue2);margin-bottom:16px}
+.caso-answer{margin-top:16px;background:rgba(26,115,200,0.08);border:1px solid rgba(36,144,232,0.25);border-radius:var(--r2);padding:16px;display:none}
+.caso-answer.visible{display:block}
+.caso-dx{font-family:"IBM Plex Mono",monospace;font-size:1rem;font-weight:600;color:var(--blue2);margin-bottom:8px}
+.caso-exp{font-size:12.5px;color:var(--t2);line-height:1.75}
+.caso-criterios{margin-top:10px;padding:10px 14px;background:rgba(0,0,0,0.2);border-radius:8px;font-size:12px;color:var(--t2);line-height:1.8}
+.b-green{background:rgba(52,211,153,.09);color:#34d399;border-color:rgba(52,211,153,.3)}
+.difdiag-pair{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--r2);padding:16px;margin-bottom:10px}
+.difdiag-pair .pair-title{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:8px}
+.difdiag-pair .clave{background:rgba(52,211,153,0.08);border-left:3px solid #34d399;padding:8px 12px;border-radius:0 8px 8px 0;font-size:12.5px;color:var(--t1);margin-top:8px}
+.difdiag-pair .clave .lbl{font-size:9px;color:#34d399;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+
+</style>
+</head>
+<body>
+<div class="app">
+
+<button class="menu-btn" onclick="document.getElementById('sb').classList.toggle('open')">
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+</button>
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sb">
+  <div class="sb-header">
+    <div class="sb-brand"><span class="dsm">DSM</span><span class="five">-5®</span></div>
+    <div class="sb-sub">Manual Diagnóstico y Estadístico<br/>de los Trastornos Mentales</div>
+  </div>
+
+  <div class="sb-sec">Inicio</div>
+  <a class="nav-item active" onclick="show('home')"><span class="nav-dot" style="background:var(--blue2)"></span>Dashboard</a>
+
+  <div class="sb-sec">Categorías DSM-5</div>
+  <a class="nav-item" onclick="show('cat1')"><span class="nav-dot" style="background:#60a5fa"></span>Trastornos del neurodesarrollo</a>
+  <a class="nav-item" onclick="show('cat2')"><span class="nav-dot" style="background:#60a5fa"></span>Espectro de la esquizofrenia</a>
+  <a class="nav-item" onclick="show('cat3')"><span class="nav-dot" style="background:#60a5fa"></span>Trastornos bipolares</a>
+  <a class="nav-item" onclick="show('cat4')"><span class="nav-dot" style="background:#60a5fa"></span>Trastornos depresivos</a>
+  <a class="nav-item" onclick="show('cat5')"><span class="nav-dot" style="background:#60a5fa"></span>Trastornos de ansiedad</a>
+  <a class="nav-item" onclick="show('cat6')"><span class="nav-dot" style="background:#60a5fa"></span>TOC y trastornos relacionados</a>
+  <a class="nav-item" onclick="show('cat7')"><span class="nav-dot" style="background:#60a5fa"></span>Trauma y factores estresantes</a>
+  <a class="nav-item" onclick="show('cat8')"><span class="nav-dot" style="background:#60a5fa"></span>Trastornos de personalidad</a>
+
+  <div class="sb-sec">Herramientas</div>
+  <a class="nav-item" onclick="show('buscador')"><span class="nav-dot" style="background:var(--gold)"></span>Buscador de trastornos</a>
+  <a class="nav-item" onclick="show('cie')"><span class="nav-dot" style="background:var(--gold)"></span>Códigos CIE-10</a>
+  <a class="nav-item" onclick="show('comparativa')"><span class="nav-dot" style="background:var(--gold)"></span>DSM-IV vs DSM-5</a>
+
+  <div class="sb-sec">Práctica</div>
+  <a class="nav-item" onclick="show('quiz')"><span class="nav-dot" style="background:var(--red)"></span>Simulador diagnóstico</a>
+  <a class="nav-item" onclick="show('casos')"><span class="nav-dot" style="background:#fb923c"></span>Casos clínicos</a>
+  <a class="nav-item" onclick="show('difdiag')"><span class="nav-dot" style="background:#34d399"></span>Diagnóstico diferencial</a>
+  <a class="nav-item" onclick="show('flash')"><span class="nav-dot" style="background:#c084fc"></span>Flashcards clínicas</a>
+
+  <div class="sb-footer">
+    <button class="sb-reset" onclick="openModal()">
+      <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+      Limpiar progreso
+    </button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+<!-- ═══ DASHBOARD ═══ -->
+<div id="panel-home" class="panel active">
+  <div class="badge b-blue">APA · 5.ª Edición</div>
+  <div class="page-title">DSM-5 · Dashboard Clínico</div>
+  <p class="page-sub">Centro de referencia y estudio del Manual Diagnóstico y Estadístico de los Trastornos Mentales, 5.ª edición. Categorías, criterios, códigos CIE-10, simulador diagnóstico y flashcards.</p>
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-lbl">Categorías</div><div class="kpi-val blue">22</div><div class="kpi-sub">Grupos diagnósticos DSM-5</div></div>
+    <div class="kpi"><div class="kpi-lbl">Precisión quiz</div><div class="kpi-val gold" id="kpi-acc">—</div><div class="kpi-sub" id="kpi-acc-sub">Sin datos aún</div></div>
+    <div class="kpi"><div class="kpi-lbl">Preguntas hechas</div><div class="kpi-val green" id="kpi-done">0</div><div class="kpi-sub">de 100+ disponibles</div></div>
+    <div class="kpi"><div class="kpi-lbl">Flashcards vistas</div><div class="kpi-val" id="kpi-fc" style="color:var(--t1)">0</div><div class="kpi-sub">de <span id="kpi-fc-tot">0</span></div></div>
+  </div>
+  <div class="cg">
+    <div>
+      <div class="sec-h">Estructura del DSM-5</div>
+      <div class="ib"><div class="lbl">Sección I</div><p>Uso del manual, criterios diagnósticos y códigos, notas de uso.</p></div>
+      <div class="ib"><div class="lbl">Sección II — 20 capítulos diagnósticos</div><p>Criterios y descriptores para cada categoría de trastorno mental.</p></div>
+      <div class="ib"><div class="lbl">Sección III — Medidas y modelos</div><p>Evaluaciones dimensionales, formulación cultural, modelo alternativo de TP, condiciones en estudio.</p></div>
+      <div class="hl">El DSM-5 elimina el sistema multiaxial del DSM-IV-TR y organiza los trastornos en un espectro de internalización–externalización.</div>
+    </div>
+    <div>
+      <div class="sec-h">Cambios clave DSM-5 vs DSM-IV</div>
+      <div class="ib"><div class="lbl">🗑 Eliminado</div><p>Sistema de 5 ejes (multiaxial). Subtipo esquizofrénico (paranoide, desorganizado…). Trastorno de Asperger como diagnóstico separado.</p></div>
+      <div class="ib"><div class="lbl">🆕 Nuevo</div><p>TEA (espectro autista unificado). Trastorno de desregulación disruptiva del estado de ánimo. Trastorno de acumulación. Trastorno de excoriación. Duelo complicado persistente.</p></div>
+      <div class="ib"><div class="lbl">🔄 Reorganizado</div><p>TOC separado de ansiedad. TEPT separado como categoría propia. Trastornos disociativos ampliados.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CAT 1: NEURODESARROLLO ═══ -->
+<div id="panel-cat1" class="panel">
+  <div class="badge b-blue">Capítulo 1 · DSM-5</div>
+  <div class="page-title">Trastornos del Neurodesarrollo</div>
+  <p class="page-sub">Grupo de trastornos que se inician en el período del desarrollo, típicamente antes de que el niño comience la etapa escolar. Se caracterizan por déficits del desarrollo que producen alteraciones del funcionamiento personal, social, académico u ocupacional.</p>
+
+  <div class="hl" style="margin-bottom:20px">⚠️ <strong>Nota de verificación:</strong> Contenido basado en DSM-5 (APA). Verifica criterios exactos con tu edición Panamericana.</div>
+
+  <div class="acc">
+
+    <!-- DI -->
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">
+        Discapacidad Intelectual (DI) — F70–F79
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="hl"><strong>Definición:</strong> Trastorno que comienza durante el período de desarrollo e incluye limitaciones del funcionamiento intelectual como también del comportamiento adaptativo en los dominios conceptual, social y práctico.</div>
+
+        <p style="font-size:13px;font-weight:700;color:var(--t1);margin:14px 0 8px">CRITERIOS DIAGNÓSTICOS (A, B, C):</p>
+        <div class="tw"><table>
+          <tr><th>Criterio</th><th>Descripción</th><th>Ejemplos clínicos</th></tr>
+          <tr><td><strong>A</strong></td><td>Déficits en funciones intelectuales: razonamiento, resolución de problemas, planificación, pensamiento abstracto, juicio, aprendizaje académico y aprendizaje por la experiencia, confirmados por evaluación clínica y pruebas de inteligencia individualizadas y estandarizadas</td><td>CI significativamente por debajo de la media (≈2 DE); dificultades para razonar, planificar, aprender</td></tr>
+          <tr><td><strong>B</strong></td><td>Déficits en el comportamiento adaptativo que producen fracaso en los estándares de desarrollo y socioculturales para la autonomía personal y la responsabilidad social. Sin apoyo continuo, los déficits adaptativos limitan el funcionamiento en una o más actividades de la vida diaria en múltiples entornos (hogar, escuela, trabajo, comunidad)</td><td>Dificultad para manejar dinero, mantener conversaciones, cuidado personal, tareas domésticas</td></tr>
+          <tr><td><strong>C</strong></td><td>Inicio de los déficits intelectuales y adaptativos durante el período de desarrollo</td><td>Manifestación antes de los 18 años</td></tr>
+        </table></div>
+
+        <div class="wn">⚠️ <strong>Cambio DSM-5 clave:</strong> La severidad ya NO se determina por el cociente intelectual (CI) sino por el nivel de comportamiento adaptativo, ya que es este el que determina el nivel de apoyo requerido.</div>
+
+        <p style="font-size:13px;font-weight:700;color:var(--t1);margin:14px 0 8px">ESPECIFICADORES DE SEVERIDAD (basados en conducta adaptativa):</p>
+        <div class="tw"><table>
+          <tr><th>Severidad</th><th>CI orientativo</th><th>CIE-10</th><th>Dominio conceptual</th><th>Dominio social</th><th>Dominio práctico</th></tr>
+          <tr><td><strong>Leve</strong></td><td>50–55 a ~70</td><td>F70</td><td>Dificultades en aprendizaje de lectura, escritura, matemáticas, tiempo y dinero</td><td>Comunicación social inmadura; relaciones con pares difíciles</td><td>Necesita apoyo para tareas complejas; funciona bien con supervisión</td></tr>
+          <tr><td><strong>Moderado</strong></td><td>35–40 a 50–55</td><td>F71</td><td>Progreso lento; logros en lectura/escritura básicos con apoyo intenso</td><td>Diferencias marcadas respecto a pares; lenguaje más simple</td><td>Puede cuidarse con entrenamiento extendido; necesita supervisión</td></tr>
+          <tr><td><strong>Grave</strong></td><td>20–25 a 35–40</td><td>F72</td><td>Comprensión limitada del lenguaje escrito; comprensión numérica muy limitada</td><td>Lenguaje muy limitado; comprende habla simple y comunicación gestual</td><td>Requiere apoyo para todas las actividades de la vida diaria</td></tr>
+          <tr><td><strong>Profundo</strong></td><td>&lt;20–25</td><td>F73</td><td>Uso simbólico en comunicación: objetos, imágenes, gestos</td><td>Muy limitado; puede comprender instrucciones simples y expresar deseos</td><td>Dependencia en todos los aspectos del cuidado físico diario</td></tr>
+        </table></div>
+
+        <p style="font-size:13px;font-weight:700;color:var(--t1);margin:14px 0 8px">DIAGNÓSTICO DIFERENCIAL:</p>
+        <div class="cr">
+          <strong>DI vs. Trastorno específico del aprendizaje:</strong> El T. aprendizaje afecta habilidades académicas específicas con inteligencia general conservada. La DI implica déficits globales intelectuales Y adaptativos.<br/><br/>
+          <strong>DI vs. Trastorno de la comunicación:</strong> Los T. comunicación pueden limitar el rendimiento en pruebas de inteligencia pero no hay déficit intelectual global.<br/><br/>
+          <strong>DI vs. Demencia (T. neurocognitivo):</strong> La DI inicia en el desarrollo; la demencia implica declive desde un nivel previo de funcionamiento en adultos.
+        </div>
+
+        <p style="font-size:13px;font-weight:700;color:var(--t1);margin:14px 0 8px">NOTAS CLÍNICAS IMPORTANTES:</p>
+        <div class="tw"><table>
+          <tr><th>Aspecto</th><th>Detalle</th></tr>
+          <tr><td>Retraso global del desarrollo</td><td>F88 — Se diagnostica cuando la severidad no puede evaluarse de forma fiable en niños menores de 5 años. Requiere reevaluación posterior.</td></tr>
+          <tr><td>Discapacidad intelectual no especificada</td><td>F79 — Evidencia de DI pero el individuo no puede ser evaluado con procedimientos estándar (menores de 5 años, adultos con déficits sensoriales o físicos graves)</td></tr>
+          <tr><td>Comorbilidades frecuentes</td><td>TDAH (hasta 40%), T. del espectro autista, T. del movimiento estereotipado, T. del estado de ánimo, T. de ansiedad, T. del espectro de la esquizofrenia</td></tr>
+        </table></div>
+      </div></div>
+    </div>
+
+    <!-- TEA -->
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">
+        Trastorno del Espectro Autista (TEA) — F84.0
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="cr"><strong>Cambio DSM-5:</strong> Unifica bajo un solo diagnóstico: Trastorno Autista + Síndrome de Asperger + Trastorno Desintegrativo Infantil + TGD-NE. El Síndrome de Asperger ya NO existe como diagnóstico independiente en DSM-5.</div>
+
+        <p style="font-size:13px;font-weight:700;color:var(--t1);margin:14px 0 8px">CRITERIOS DIAGNÓSTICOS:</p>
+        <div class="tw"><table>
+          <tr><th>Criterio</th><th>Requisito</th><th>Descripción</th></tr>
+          <tr><td><strong>A</strong></td><td>Los 3 subdominios</td><td>Déficits persistentes en la comunicación e interacción social en múltiples contextos, no explicados por retrasos del desarrollo general</td></tr>
+          <tr><td><strong>B</strong></td><td>≥2 de 4 síntomas</td><td>Patrones restrictivos y repetitivos de comportamiento, intereses o actividades</td></tr>
+          <tr><td><strong>C</strong></td><td>Período temprano</td><td>Los síntomas deben estar presentes en el período de desarrollo temprano (aunque pueden no manifestarse plenamente hasta que las demandas sociales superan las capacidades)</td></tr>
+          <tr><td><strong>D</strong></td><td>Disfunción</td><td>Causan deterioro significativo en lo social, laboral u otras áreas del funcionamiento</td></tr>
+          <tr><td><strong>E</strong></td><td>Exclusión</td><td>No se explican mejor por discapacidad intelectual o retraso global del desarrollo</td></tr>
+        </table></div>
+
+        <p style="font-size:13px;font-weight:700;color:var(--t1);margin:14px 0 8px">CRITERIO A — Déficits en comunicación e interacción social (los 3):</p>
+        <div class="tw"><table>
+          <tr><th>A1</th><th>Déficits en reciprocidad socioemocional</th></tr>
+          <tr><td>Manifestaciones</td><td>Acercamiento social anormal; fracaso en conversación normal bidireccional; reducción de intereses, emociones o afecto compartidos; fracaso para iniciar o responder a interacciones sociales</td></tr>
+          <tr><th>A2</th><th>Déficits en conductas comunicativas no verbales</th></tr>
+          <tr><td>Manifestaciones</td><td>Comunicación verbal y no verbal poco integrada; anomalías en el contacto visual y en el lenguaje corporal; déficits en comprensión y uso de gestos; falta total de expresión facial y comunicación no verbal</td></tr>
+          <tr><th>A3</th><th>Déficits en el desarrollo, mantenimiento y comprensión de relaciones</th></tr>
+          <tr><td>Manifestaciones</td><td>Dificultades para ajustar el comportamiento a diferentes contextos sociales; dificultades para compartir el juego imaginativo o para hacer amigos; ausencia de interés por otras personas</td></tr>
+        </table></div>
+
+        <p style="font-size:13px;font-weight:700;color:var(--t1);margin:14px 0 8px">CRITERIO B — Patrones restrictivos y repetitivos (≥2 de 4):</p>
+        <div class="tw"><table>
+          <tr><th>#</th><th>Síntoma</th><th>Ejemplos</th></tr>
+          <tr><td><strong>B1</strong></td><td>Movimientos motores, uso de objetos o habla estereotipados o repetitivos</td><td>Estereotipias motoras simples; alineación de juguetes o cambio de lugar de objetos; ecolalia; frases idiosincrásicas</td></tr>
+          <tr><td><strong>B2</strong></td><td>Insistencia en la igualdad, adherencia inflexible a rutinas o patrones ritualizados</td><td>Angustia extrema ante pequeños cambios; dificultades con las transiciones; patrones de pensamiento rígidos; rituales de saludo; necesidad de misma ruta o misma comida</td></tr>
+          <tr><td><strong>B3</strong></td><td>Intereses muy restringidos y fijos de intensidad desusada</td><td>Fuerte apego o preocupación por objetos inusuales; interés excesivo y circunscrito</td></tr>
+          <tr><td><strong>B4</strong></td><td>Hiper o hiporreactividad a los estímulos sensoriales o interés inusual por aspectos sensoriales del entorno</td><td>Indiferencia aparente al dolor/temperatura; respuesta adversa a sonidos/texturas específicas; fascinación por luces u objetos que giran; olfateo o palpación excesiva de objetos</td></tr>
+        </table></div>
+
+        <p style="font-size:13px;font-weight:700;color:var(--t1);margin:14px 0 8px">NIVELES DE SEVERIDAD (basados en el apoyo requerido):</p>
+        <div class="tw"><table>
+          <tr><th>Nivel</th><th>Denominación</th><th>Comunicación social</th><th>Comportamientos restringidos/repetitivos</th></tr>
+          <tr><td><strong>1</strong></td><td>Requiere apoyo</td><td>Sin apoyo in situ, déficits en comunicación social causan alteraciones perceptibles. Dificultad para iniciar interacciones sociales. Respuestas atípicas o fallidas a las iniciativas sociales de otros.</td><td>La inflexibilidad del comportamiento causa interferencia significativa con el funcionamiento en uno o más contextos. Dificultad para cambiar de actividad.</td></tr>
+          <tr><td><strong>2</strong></td><td>Requiere apoyo sustancial</td><td>Déficits marcados en habilidades de comunicación social verbal y no verbal. Déficits sociales aparentes incluso con apoyos in situ. Iniciación limitada de interacciones sociales.</td><td>Inflexibilidad del comportamiento, dificultad para afrontar cambios u otros comportamientos restringidos/repetitivos son suficientemente frecuentes para ser obvios.</td></tr>
+          <tr><td><strong>3</strong></td><td>Requiere apoyo muy sustancial</td><td>Déficits graves en habilidades de comunicación social verbal y no verbal que causan alteraciones graves del funcionamiento. Iniciación muy limitada de interacciones sociales y respuesta mínima.</td><td>La inflexibilidad del comportamiento, la extrema dificultad para afrontar cambios u otros comportamientos restringidos/repetitivos interfieren marcadamente con el funcionamiento en todos los ámbitos.</td></tr>
+        </table></div>
+
+        <p style="font-size:13px;font-weight:700;color:var(--t1);margin:14px 0 8px">ESPECIFICADORES:</p>
+        <div class="tw"><table>
+          <tr><th>Especificador</th><th>Descripción</th></tr>
+          <tr><td>Con o sin déficit intelectual acompañante</td><td>Indicar nivel de DI si está presente</td></tr>
+          <tr><td>Con o sin déficit del lenguaje acompañante</td><td>Nivel actual de funcionamiento verbal</td></tr>
+          <tr><td>Asociado a afección médica o genética conocida, o factor ambiental</td><td>Ej: síndrome de Rett, síndrome de X frágil, epilepsia</td></tr>
+          <tr><td>Asociado a otro trastorno del neurodesarrollo, mental o del comportamiento</td><td>TDAH, ansiedad, depresión, T. de conducta</td></tr>
+          <tr><td>Con catatonía</td><td>Usar código adicional F06.1</td></tr>
+        </table></div>
+
+        <div class="wn">⚠️ <strong>Importante:</strong> En DSM-5, el TEA y el TDAH pueden diagnosticarse de forma comórbida. Esto es un cambio respecto al DSM-IV-TR que lo excluía.</div>
+      </div></div>
+    </div>
+
+    <!-- TDAH -->
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">
+        TDAH — Trastorno por Déficit de Atención/Hiperactividad — F90.x
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <p style="font-size:13px;font-weight:700;color:var(--t1);margin:0 0 10px">CRITERIOS DIAGNÓSTICOS:</p>
+
+        <div class="hl"><strong>Criterio A:</strong> Patrón persistente de inatención y/o hiperactividad-impulsividad que interfiere con el funcionamiento o el desarrollo.</div>
+
+        <p style="font-size:13px;font-weight:600;color:var(--blue2);margin:14px 0 8px">A1 — INATENCIÓN: ≥6 síntomas (adultos ≥17 años: ≥5)</p>
+        <div class="tw"><table>
+          <tr><th>#</th><th>Síntoma de inatención</th><th>Presentación clínica típica</th></tr>
+          <tr><td>a</td><td>Con frecuencia falla en prestar la debida atención a los detalles o por descuido se cometen errores en las tareas escolares, en el trabajo o durante otras actividades</td><td>Pasa por alto detalles, el trabajo es descuidado</td></tr>
+          <tr><td>b</td><td>Con frecuencia tiene dificultades para mantener la atención en tareas o actividades recreativas</td><td>Dificultad para mantener la atención en clases, conversaciones o lectura prolongada</td></tr>
+          <tr><td>c</td><td>Con frecuencia parece no escuchar cuando se le habla directamente</td><td>La mente parece estar en otro lugar, incluso sin distracción obvia</td></tr>
+          <tr><td>d</td><td>Con frecuencia no sigue las instrucciones y no termina las tareas escolares, los quehaceres o los deberes laborales</td><td>Empieza tareas pero se distrae y se aparta del objetivo</td></tr>
+          <tr><td>e</td><td>Con frecuencia tiene dificultad para organizar tareas y actividades</td><td>Dificultad para gestionar tareas secuenciales, materiales y tiempo</td></tr>
+          <tr><td>f</td><td>Con frecuencia evita, le disgusta o se muestra poco entusiasta en iniciar tareas que requieren un esfuerzo mental sostenido</td><td>Evita deberes escolares o informes; los procrastina</td></tr>
+          <tr><td>g</td><td>Con frecuencia pierde cosas necesarias para tareas o actividades</td><td>Pierde lápices, libros, llaves, gafas, cartera</td></tr>
+          <tr><td>h</td><td>Con frecuencia se distrae con facilidad por estímulos externos</td><td>En adolescentes/adultos: pensamientos no relacionados</td></tr>
+          <tr><td>i</td><td>Con frecuencia olvida las actividades cotidianas</td><td>Olvida hacer recados, devolver llamadas, pagar facturas</td></tr>
+        </table></div>
+
+        <p style="font-size:13px;font-weight:600;color:var(--blue2);margin:14px 0 8px">A2 — HIPERACTIVIDAD E IMPULSIVIDAD: ≥6 síntomas (adultos ≥17 años: ≥5)</p>
+        <div class="tw"><table>
+          <tr><th>#</th><th>Síntoma</th><th>Presentación clínica típica</th></tr>
+          <tr><td>a</td><td>Con frecuencia juguetea con o golpea las manos o los pies o se retuerce en el asiento</td><td>Movimientos constantes de pies/manos en el asiento</td></tr>
+          <tr><td>b</td><td>Con frecuencia se levanta en situaciones en que se espera que permanezca sentado</td><td>Se levanta en clase, oficina, u otras situaciones</td></tr>
+          <tr><td>c</td><td>Con frecuencia corretea o trepa en situaciones en las que no resulta apropiado (en adolescentes/adultos: puede limitarse a una sensación de inquietud)</td><td>Sensación subjetiva de inquietud en adultos</td></tr>
+          <tr><td>d</td><td>Con frecuencia es incapaz de jugar o de ocuparse tranquilamente en actividades recreativas</td><td>Ruido constante, incapacidad de actividades silenciosas</td></tr>
+          <tr><td>e</td><td>Con frecuencia está "ocupado", actuando como si "lo impulsara un motor"</td><td>Incómodo permaneciendo quieto por tiempo prolongado</td></tr>
+          <tr><td>f</td><td>Con frecuencia habla excesivamente</td><td>Verborrea excesiva</td></tr>
+          <tr><td>g</td><td>Con frecuencia responde inesperadamente o antes de que se haya concluido una pregunta</td><td>Termina frases de otros; no puede esperar su turno</td></tr>
+          <tr><td>h</td><td>Con frecuencia le es difícil esperar su turno</td><td>En colas, conversaciones grupales, juegos</td></tr>
+          <tr><td>i</td><td>Con frecuencia interrumpe o se inmiscuye con otros</td><td>Se entromete en conversaciones, juegos o actividades</td></tr>
+        </table></div>
+
+        <p style="font-size:13px;font-weight:700;color:var(--t1);margin:14px 0 8px">CRITERIOS B, C, D, E:</p>
+        <div class="tw"><table>
+          <tr><th>Criterio</th><th>Requisito</th></tr>
+          <tr><td><strong>B</strong></td><td>Varios síntomas de inatención o hiperactivo-impulsivos estaban presentes <strong>antes de los 12 años</strong> (cambio del DSM-IV que era antes de los 7 años)</td></tr>
+          <tr><td><strong>C</strong></td><td>Varios síntomas de inatención o hiperactivo-impulsivos están presentes en <strong>dos o más contextos</strong> (casa, escuela, trabajo, amigos)</td></tr>
+          <tr><td><strong>D</strong></td><td>Evidencia clara de que los síntomas <strong>interfieren con la calidad</strong> del funcionamiento social, académico o laboral o la reducen</td></tr>
+          <tr><td><strong>E</strong></td><td>Los síntomas <strong>no se producen exclusivamente</strong> durante el curso de esquizofrenia u otro trastorno psicótico y no se explican mejor por otro trastorno mental</td></tr>
+        </table></div>
+
+        <p style="font-size:13px;font-weight:700;color:var(--t1);margin:14px 0 8px">PRESENTACIONES (especificadores):</p>
+        <div class="tw"><table>
+          <tr><th>Código</th><th>Presentación</th><th>Criterio</th></tr>
+          <tr><td>F90.2</td><td><strong>Combinada</strong></td><td>Se cumplen Criterio A1 (inatención) Y Criterio A2 (hiperactividad-impulsividad) durante los últimos 6 meses</td></tr>
+          <tr><td>F90.0</td><td><strong>Predominantemente inatenta</strong></td><td>Se cumple Criterio A1 pero NO el A2 durante los últimos 6 meses</td></tr>
+          <tr><td>F90.1</td><td><strong>Predominantemente hiperactiva/impulsiva</strong></td><td>Se cumple Criterio A2 pero NO el A1 durante los últimos 6 meses</td></tr>
+        </table></div>
+
+        <p style="font-size:13px;font-weight:700;color:var(--t1);margin:14px 0 8px">ESPECIFICADORES ADICIONALES:</p>
+        <div class="tw"><table>
+          <tr><th>Especificador</th><th>Criterio</th></tr>
+          <tr><td>En remisión parcial</td><td>Previamente se cumplían todos los criterios, actualmente quedan menos síntomas pero siguen afectando funcionamiento social, académico o laboral</td></tr>
+          <tr><td>Severidad leve</td><td>Pocos síntomas más que los requeridos; alteración menor del funcionamiento</td></tr>
+          <tr><td>Severidad moderada</td><td>Síntomas o deterioro funcional entre leve y grave</td></tr>
+          <tr><td>Severidad grave</td><td>Muchos síntomas más que los requeridos; marcada interferencia en el funcionamiento</td></tr>
+        </table></div>
+
+        <div class="cr"><strong>Diagnóstico diferencial clave:</strong><br/>
+        • <strong>TDAH vs. TAG:</strong> En ansiedad la inatención ocurre porque la mente está ocupada con preocupaciones; en TDAH es pervasiva incluso en actividades placenteras de baja estimulación.<br/>
+        • <strong>TDAH vs. T. oposicionista desafiante:</strong> En TOD la no-realización de tareas es intencional; en TDAH es por distracción.<br/>
+        • <strong>TDAH vs. T. del estado de ánimo:</strong> El TDAH es crónico desde la infancia; los T. del ánimo son episódicos.<br/>
+        • <strong>TDAH vs. T. de ansiedad por separación:</strong> La inatención en ansiedad por separación ocurre solo en contextos de separación.</div>
+      </div></div>
+    </div>
+
+    <!-- T ESPECÍFICO APRENDIZAJE -->
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">
+        Trastorno Específico del Aprendizaje — F81.x
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="hl"><strong>Criterio A:</strong> Dificultad en el aprendizaje y en la utilización de las aptitudes académicas, con presencia de al menos uno de los siguientes síntomas que han persistido por lo menos 6 meses a pesar de intervenciones dirigidas:</div>
+        <div class="tw"><table>
+          <tr><th>#</th><th>Síntoma</th></tr>
+          <tr><td>1</td><td>Lectura de palabras imprecisa o lenta y con esfuerzo (lee palabras sueltas en voz alta incorrectamente o despacio y con vacilación, con frecuencia adivina las palabras, dificultad para expresar bien las palabras)</td></tr>
+          <tr><td>2</td><td>Dificultad para comprender el significado de lo que se lee (puede leer con precisión pero no comprende la secuencia, las relaciones, las inferencias o los significados más profundos)</td></tr>
+          <tr><td>3</td><td>Dificultades ortográficas (puede añadir, omitir o sustituir vocales o consonantes)</td></tr>
+          <tr><td>4</td><td>Dificultades con la expresión escrita (hace múltiples errores gramaticales o de puntuación, organización pobre de párrafos)</td></tr>
+          <tr><td>5</td><td>Dificultades para dominar el sentido numérico, los datos numéricos o el cálculo (comprensión pobre de los números, magnitud y relaciones; uso de los dedos para sumar en lugar de recordar hechos matemáticos)</td></tr>
+          <tr><td>6</td><td>Dificultades con el razonamiento matemático (gran dificultad para aplicar conceptos, hechos u operaciones matemáticas para resolver problemas cuantitativos)</td></tr>
+        </table></div>
+
+        <div class="wn"><strong>Criterio B:</strong> Las aptitudes académicas afectadas están por debajo de lo esperado para la edad cronológica del individuo e interfieren significativamente con el rendimiento académico o laboral, o con actividades de la vida cotidiana, confirmado con pruebas estandarizadas.<br/><br/>
+        <strong>Criterio C:</strong> Las dificultades de aprendizaje comienzan en la edad escolar pero pueden no manifestarse plenamente hasta que las demandas de las aptitudes académicas afectadas superen las capacidades limitadas del individuo.<br/><br/>
+        <strong>Criterio D:</strong> No se explican mejor por discapacidades intelectuales, agudeza visual o auditiva no corregida, otros trastornos mentales o neurológicos, adversidad psicosocial, falta de dominio del lenguaje de instrucción académica o directrices educativas inadecuadas.</div>
+
+        <p style="font-size:13px;font-weight:700;color:var(--t1);margin:14px 0 8px">ESPECIFICADORES (con código CIE-10):</p>
+        <div class="tw"><table>
+          <tr><th>Especificador</th><th>CIE-10</th><th>Síntomas predominantes</th><th>Denominación usual</th></tr>
+          <tr><td>Con dificultad en la lectura</td><td>F81.0</td><td>Precisión, velocidad o fluidez de la lectura; comprensión lectora</td><td>Dislexia</td></tr>
+          <tr><td>Con dificultad en la expresión escrita</td><td>F81.81</td><td>Corrección ortográfica, corrección gramatical y de puntuación, claridad u organización de la expresión escrita</td><td>Disgrafía</td></tr>
+          <tr><td>Con dificultad matemática</td><td>F81.2</td><td>Sentido de los números, memorización de operaciones aritméticas, cálculo correcto o fluido, razonamiento matemático correcto</td><td>Discalculia</td></tr>
+        </table></div>
+
+        <p style="font-size:13px;font-weight:700;color:var(--t1);margin:14px 0 8px">SEVERIDAD:</p>
+        <div class="tw"><table>
+          <tr><th>Nivel</th><th>Descripción</th></tr>
+          <tr><td>Leve</td><td>Algunas dificultades con aptitudes de aprendizaje en una o dos áreas académicas, pero suficientemente leves para que el individuo pueda compensar o funcionar bien si recibe adaptaciones o servicios de apoyo apropiados</td></tr>
+          <tr><td>Moderado</td><td>Dificultades marcadas con las aptitudes de aprendizaje en una o más áreas académicas; sin un período de enseñanza intensiva y especializada, el individuo es poco probable que llegue a dominarlas</td></tr>
+          <tr><td>Grave</td><td>Dificultades graves en aptitudes de aprendizaje que afectan varias áreas académicas; raramente aprende sin enseñanza constante, intensiva, individualizada y especializada durante la mayor parte de los años escolares</td></tr>
+        </table></div>
+      </div></div>
+    </div>
+
+    <!-- TRASTORNOS COMUNICACIÓN -->
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">
+        Trastornos de la Comunicación — F80.x / F94.0
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="tw"><table>
+          <tr><th>Trastorno</th><th>CIE-10</th><th>Criterio central</th><th>Diferencial clave</th></tr>
+          <tr><td><strong>T. del lenguaje</strong></td><td>F80.9</td><td>Dificultades persistentes en la adquisición y uso del lenguaje en todas las modalidades (hablado, escrito, lenguaje de signos) por deficiencias en comprensión o producción</td><td>No se explica por pérdida auditiva, TEA ni DI</td></tr>
+          <tr><td><strong>T. fonológico</strong></td><td>F80.0</td><td>Dificultad persistente en la producción fonológica que interfiere con la inteligibilidad del habla o impide la comunicación verbal de mensajes</td><td>Diferente al tartamudeo; afecta producción de sonidos específicos</td></tr>
+          <tr><td><strong>T. de la fluidez de inicio en la infancia (Tartamudeo)</strong></td><td>F98.5</td><td>Alteraciones de la fluidez y la organización temporal normales del habla, inadecuadas para la edad: repeticiones de sonidos/sílabas, prolongaciones de sonidos, palabras fragmentadas, bloqueos</td><td>No incluye disfluencias asociadas al tartamudeo de inicio en el adulto</td></tr>
+          <tr><td><strong>T. de la comunicación social (pragmático)</strong></td><td>F80.89</td><td>Dificultades persistentes en el uso pragmático (social) de la comunicación verbal y no verbal. Déficits en usar la comunicación para propósitos sociales, adaptar el lenguaje al contexto, seguir reglas de conversación</td><td><strong>Nuevo en DSM-5.</strong> No hay síntomas restrictivos/repetitivos (si los hay → TEA). El diagnóstico no se puede hacer antes de los 4-5 años.</td></tr>
+          <tr><td><strong>Mutismo selectivo</strong></td><td>F94.0</td><td>Fracaso constante para hablar en situaciones sociales específicas (en la escuela) a pesar de hablar en otras (en casa). Interfiere con logros educativos o comunicación social. Dura ≥1 mes (no el primer mes de escuela)</td><td>En DSM-5 se clasifica en T. de ansiedad. No es por falta de conocimiento del lenguaje ni por incomodidad con el idioma.</td></tr>
+        </table></div>
+      </div></div>
+    </div>
+
+    <!-- TRASTORNOS MOTORES -->
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">
+        Trastornos Motores del Neurodesarrollo — F82 / F98.4 / F95.x
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="tw"><table>
+          <tr><th>Trastorno</th><th>CIE-10</th><th>Criterio central</th><th>Nota clave</th></tr>
+          <tr><td><strong>T. del desarrollo de la coordinación</strong></td><td>F82</td><td>Adquisición y ejecución de habilidades motoras coordinadas sustancialmente por debajo de lo esperado para la edad cronológica y la oportunidad de aprendizaje. Manifestado como torpeza, lentitud e imprecisión en el rendimiento de habilidades motoras</td><td>No se explica por DI, pérdida visual o enfermedades neurológicas. Interfiere con actividades de la vida diaria, logros académicos o actividades lúdicas</td></tr>
+          <tr><td><strong>T. de movimientos estereotipados</strong></td><td>F98.4</td><td>Comportamiento motor repetitivo, aparentemente guiado y sin propósito aparente (agitar manos, mecer el cuerpo, golpear la cabeza, morderse, golpearse el cuerpo propio)</td><td>Puede causar lesiones autoinfligidas. Especificar: con/sin comportamiento autolesivo. Especificar: asociado a afección médica o genética conocida, trastorno del neurodesarrollo o factor ambiental</td></tr>
+          <tr><td><strong>T. de Tourette</strong></td><td>F95.2</td><td>Tics motores múltiples y al menos un tic vocal, presentes en algún momento durante la enfermedad aunque no necesariamente de forma simultánea. Tics presentes durante más de un año desde la aparición del primer tic</td><td>Inicio antes de los 18 años. Los tics pueden suprimirse temporalmente. Los tics cambian con el tiempo en localización, frecuencia, tipo, complejidad y gravedad</td></tr>
+          <tr><td><strong>T. de tics motores o vocales persistente (crónico)</strong></td><td>F95.1</td><td>Tics motores o vocales únicos o múltiples, pero no ambos, presentes durante más de un año</td><td>Especificar: solo con tics motores / solo con tics vocales</td></tr>
+          <tr><td><strong>T. de tics transitorio</strong></td><td>F95.0</td><td>Tics motores y/o vocales únicos o múltiples durante menos de 1 año desde la aparición del primer tic</td><td>No se han cumplido nunca los criterios del T. de Tourette ni del T. persistente</td></tr>
+        </table></div>
+      </div></div>
+    </div>
+
+  </div><!-- end acc -->
+</div>
+
+<!-- ═══ CAT 2: ESQUIZOFRENIA ═══ -->
+<div id="panel-cat2" class="panel">
+  <div class="badge b-blue">Capítulo 2</div>
+  <div class="page-title">Espectro de la Esquizofrenia y Otros Trastornos Psicóticos</div>
+  <div class="acc">
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">Esquizofrenia — F20.9
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="hl"><strong>Criterio A:</strong> ≥2 de los siguientes, durante ≥1 mes (≥1 debe ser 1, 2 o 3):</div>
+        <div class="tw"><table><tr><th>#</th><th>Síntoma</th><th>Tipo</th></tr>
+        <tr><td>1</td><td>Delirios (ideas delirantes)</td><td>Positivo</td></tr>
+        <tr><td>2</td><td>Alucinaciones</td><td>Positivo</td></tr>
+        <tr><td>3</td><td>Discurso desorganizado (incoherencia, disgregación)</td><td>Positivo</td></tr>
+        <tr><td>4</td><td>Comportamiento muy desorganizado o catatónico</td><td>Positivo</td></tr>
+        <tr><td>5</td><td>Síntomas negativos (afecto aplanado, alogia, abulia, anhedonia, asocialidad)</td><td>Negativo</td></tr>
+        </table></div>
+        <div class="tw"><table><tr><th>Criterio</th><th>Requisito</th></tr>
+        <tr><td>B — Disfunción social/laboral</td><td>Uno o más ámbitos funcionando muy por debajo del nivel previo</td></tr>
+        <tr><td>C — Duración</td><td>Signos continuos ≥6 meses (incluye ≥1 mes de Crit. A activo)</td></tr>
+        <tr><td>D — Exclusión</td><td>Descartar T. esquizoafectivo, T. depresivo o bipolar con psicosis</td></tr>
+        <tr><td>E — Exclusión</td><td>No atribuible a sustancias o enfermedad médica</td></tr>
+        <tr><td>F — TEA</td><td>Si hay antecedentes de TEA, esquizofrenia solo si hay delirios/alucinaciones prominentes ≥1 mes</td></tr>
+        </table></div>
+        <div class="cr">DSM-5: Se eliminan los subtipos de esquizofrenia (paranoide, desorganizado, catatónico, indiferenciado, residual). Ahora se usa dimensiones de severidad.</div>
+      </div></div>
+    </div>
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">Otros trastornos psicóticos — comparativa
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="tw"><table><tr><th>Trastorno</th><th>Duración</th><th>CIE-10</th><th>Nota clave</th></tr>
+        <tr><td><strong>T. psicótico breve</strong></td><td>1 día – 1 mes</td><td>F23</td><td>Retorno completo al nivel previo</td></tr>
+        <tr><td><strong>T. esquizofreniforme</strong></td><td>1–6 meses</td><td>F20.81</td><td>Igual que esquizofrenia pero &lt;6 meses</td></tr>
+        <tr><td><strong>T. esquizoafectivo</strong></td><td>Crónico</td><td>F25</td><td>Episodio afectivo mayor + síntomas esquizofrénicos</td></tr>
+        <tr><td><strong>T. delirante</strong></td><td>≥1 mes</td><td>F22</td><td>Solo delirios, sin otros síntomas de esquizofrenia</td></tr>
+        <tr><td><strong>T. psicótico inducido por sustancias</strong></td><td>Variable</td><td>F1x.x59</td><td>Directamente por la sustancia</td></tr>
+        </table></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CAT 3: BIPOLAR ═══ -->
+<div id="panel-cat3" class="panel">
+  <div class="badge b-blue">Capítulo 3</div>
+  <div class="page-title">Trastornos Bipolares y Relacionados</div>
+  <div class="acc">
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">Episodio Maníaco — criterios
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="hl"><strong>Criterio A:</strong> Estado de ánimo elevado/expansivo/irritable + aumento de energía/actividad anormal y persistente durante ≥7 días (o cualquier duración si hospitalización).</div>
+        <p style="margin-bottom:8px;font-size:12.5px;color:var(--t2)"><strong style="color:var(--t1)">Criterio B:</strong> ≥3 de los siguientes (≥4 si solo irritable):</p>
+        <div class="tw"><table><tr><th>Mnemotecnia: <em>DIG FAST</em></th><th>Síntoma</th></tr>
+        <tr><td><em>D</em>istractibility</td><td>Distraibilidad</td></tr>
+        <tr><td><em>I</em>rritability / Insomnia</td><td>Disminución de la necesidad de sueño</td></tr>
+        <tr><td><em>G</em>randiosity</td><td>Autoestima elevada o grandiosidad</td></tr>
+        <tr><td><em>F</em>light of ideas</td><td>Pensamiento acelerado / fuga de ideas</td></tr>
+        <tr><td><em>A</em>ctivity increase</td><td>Aumento de actividad o agitación psicomotora</td></tr>
+        <tr><td><em>S</em>leep deficit</td><td>Insomnio / menos sueño</td></tr>
+        <tr><td><em>T</em>alkative</td><td>Verborrea / presión para hablar</td></tr>
+        </table></div>
+        <div class="wn">También: Comportamiento impulsivo de alto riesgo (gastos excesivos, hipersexualidad, inversiones alocadas).</div>
+      </div></div>
+    </div>
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">Tipos de Trastorno Bipolar — comparativa
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="tw"><table><tr><th>Tipo</th><th>Manía</th><th>Hipomanía</th><th>Depresión</th><th>CIE-10</th></tr>
+        <tr><td><strong>Bipolar I</strong></td><td>✓ (≥7 días)</td><td>—</td><td>Posible</td><td>F31.x</td></tr>
+        <tr><td><strong>Bipolar II</strong></td><td>✗</td><td>✓ (≥4 días)</td><td>✓ (obligatoria)</td><td>F31.81</td></tr>
+        <tr><td><strong>Ciclotimia</strong></td><td>✗</td><td>Síntomas hipomaníacos</td><td>Síntomas depresivos</td><td>F34.0</td></tr>
+        </table></div>
+        <div class="cr">Diferencia clave Manía vs Hipomanía: La manía dura ≥7 días o requiere hospitalización. La hipomanía dura ≥4 días y NO causa deterioro grave ni requiere hospitalización.</div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CAT 4: DEPRESIVOS ═══ -->
+<div id="panel-cat4" class="panel">
+  <div class="badge b-blue">Capítulo 4</div>
+  <div class="page-title">Trastornos Depresivos</div>
+  <div class="acc">
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">Episodio de Depresión Mayor — criterios DSM-5
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="hl">≥5 síntomas durante ≥2 semanas; al menos 1 debe ser (1) o (2). Representan cambio del funcionamiento previo.</div>
+        <div class="tw"><table><tr><th>Mnemotecnia: <em>SIG E CAPS</em></th><th>Síntoma</th></tr>
+        <tr><td><em>S</em>leep</td><td>Insomnio o hipersomnia casi todos los días</td></tr>
+        <tr><td><em>I</em>nterest</td><td>Disminución del interés o placer en casi todas las actividades (2) *</td></tr>
+        <tr><td><em>G</em>uilt</td><td>Sentimientos de culpa o inutilidad excesivos</td></tr>
+        <tr><td><em>E</em>nergy</td><td>Fatiga o pérdida de energía casi todos los días</td></tr>
+        <tr><td><em>C</em>oncentration</td><td>Dificultad para pensar, concentrarse, tomar decisiones</td></tr>
+        <tr><td><em>A</em>ppetite</td><td>Cambios en el apetito / peso (±5% en un mes)</td></tr>
+        <tr><td><em>P</em>sychomotor</td><td>Agitación o enlentecimiento psicomotor</td></tr>
+        <tr><td><em>S</em>uicidality</td><td>Pensamientos de muerte / ideación suicida / intentos</td></tr>
+        </table></div>
+        <p style="font-size:11.5px;color:var(--t3);margin-top:4px">* El síntoma (1) es: estado de ánimo deprimido la mayor parte del día.</p>
+        <div class="wn">DSM-5 nuevo: Se elimina la exclusión por duelo. Una persona en duelo puede recibir el diagnóstico si cumple criterios. Se agrega el especificador "con ansiedad".</div>
+      </div></div>
+    </div>
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">Otros trastornos depresivos — comparativa
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="tw"><table><tr><th>Trastorno</th><th>Duración mínima</th><th>CIE-10</th><th>Nota DSM-5</th></tr>
+        <tr><td><strong>Trastorno depresivo mayor (TDM)</strong></td><td>2 semanas</td><td>F32.x / F33.x</td><td>Episodio único vs recurrente</td></tr>
+        <tr><td><strong>Trastorno depresivo persistente (Distimia)</strong></td><td>2 años (1 año en niños)</td><td>F34.1</td><td>Unifica distimia y TDM crónico del DSM-IV</td></tr>
+        <tr><td><strong>TDDSEA</strong></td><td>Crónico desde infancia</td><td>F34.81</td><td>Nuevo DSM-5: irritabilidad grave crónica en niños</td></tr>
+        <tr><td><strong>Disforia premenstrual (TDPM)</strong></td><td>Ciclo menstrual</td><td>F32.81</td><td>Nuevo en Sección II del DSM-5</td></tr>
+        </table></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CAT 5: ANSIEDAD ═══ -->
+<div id="panel-cat5" class="panel">
+  <div class="badge b-blue">Capítulo 5</div>
+  <div class="page-title">Trastornos de Ansiedad</div>
+  <div class="acc">
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">Trastorno de Ansiedad Generalizada (TAG) — F41.1
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="hl"><strong>Criterio A:</strong> Ansiedad y preocupación excesiva sobre distintos temas, la mayoría de los días durante ≥6 meses, difíciles de controlar.</div>
+        <p style="font-size:12.5px;color:var(--t2);margin:8px 0"><strong style="color:var(--t1)">Criterio B:</strong> ≥3 síntomas (≥1 en niños):</p>
+        <div class="tw"><table><tr><th>Síntoma</th></tr>
+        <tr><td>Inquietud o sensación de estar atrapado</td></tr>
+        <tr><td>Fatiga fácil</td></tr>
+        <tr><td>Dificultad para concentrarse / mente en blanco</td></tr>
+        <tr><td>Irritabilidad</td></tr>
+        <tr><td>Tensión muscular</td></tr>
+        <tr><td>Alteraciones del sueño (dificultad para dormir / sueño no reparador)</td></tr>
+        </table></div>
+      </div></div>
+    </div>
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">Trastorno de Pánico — F41.0
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="hl"><strong>Ataque de pánico:</strong> Oleada repentina de miedo/malestar intenso que alcanza su máximo en minutos, con ≥4 síntomas.</div>
+        <div class="tw"><table><tr><th colspan="2">Síntomas del ataque de pánico (≥4)</th></tr>
+        <tr><td>Palpitaciones / taquicardia</td><td>Sudoración</td></tr>
+        <tr><td>Temblores</td><td>Sensación de ahogo</td></tr>
+        <tr><td>Sensación de asfixia</td><td>Dolor torácico</td></tr>
+        <tr><td>Náuseas / malestar abdominal</td><td>Mareo / inestabilidad</td></tr>
+        <tr><td>Escalofríos / sofocos</td><td>Parestesias</td></tr>
+        <tr><td>Desrealización / despersonalización</td><td>Miedo a perder el control</td></tr>
+        <tr><td>Miedo a morir</td><td>—</td></tr>
+        </table></div>
+        <div class="wn">T. de pánico = ataques inesperados recurrentes + ≥1 mes de preocupación por futuros ataques y/o cambio de comportamiento.</div>
+      </div></div>
+    </div>
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">Otros trastornos de ansiedad — tabla comparativa
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="tw"><table><tr><th>Trastorno</th><th>CIE-10</th><th>Núcleo</th><th>Duración mínima</th></tr>
+        <tr><td><strong>Fobia específica</strong></td><td>F40.2xx</td><td>Miedo/ansiedad a objeto o situación específica</td><td>≥6 meses</td></tr>
+        <tr><td><strong>T. ansiedad social (Fobia social)</strong></td><td>F40.10</td><td>Miedo a la evaluación negativa en situaciones sociales</td><td>≥6 meses</td></tr>
+        <tr><td><strong>Agorafobia</strong></td><td>F40.00</td><td>Miedo a situaciones donde escapar sería difícil</td><td>≥6 meses</td></tr>
+        <tr><td><strong>T. ansiedad por separación</strong></td><td>F93.0</td><td>Miedo excesivo a separarse de figuras de apego</td><td>≥4 semanas (niños) / 6 meses (adultos)</td></tr>
+        <tr><td><strong>Mutismo selectivo</strong></td><td>F94.0</td><td>No habla en situaciones específicas (p. ej. escuela)</td><td>≥1 mes</td></tr>
+        </table></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CAT 6: TOC ═══ -->
+<div id="panel-cat6" class="panel">
+  <div class="badge b-blue">Capítulo 6 · Nuevo en DSM-5</div>
+  <div class="page-title">TOC y Trastornos Relacionados</div>
+  <div class="cr">DSM-5: Este capítulo es nuevo. En el DSM-IV el TOC estaba dentro de los trastornos de ansiedad.</div>
+  <div class="acc">
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">TOC — Trastorno Obsesivo-Compulsivo — F42
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="hl">Presencia de <strong>obsesiones</strong>, <strong>compulsiones</strong>, o ambas.</div>
+        <div class="tw"><table><tr><th>Componente</th><th>Definición</th><th>Ejemplo</th></tr>
+        <tr><td><strong>Obsesiones</strong></td><td>Pensamientos, impulsos o imágenes recurrentes y persistentes, intrusivos y no deseados que generan ansiedad/malestar</td><td>Miedo a la contaminación, pensamientos agresivos, simetría</td></tr>
+        <tr><td><strong>Compulsiones</strong></td><td>Comportamientos repetitivos o actos mentales que el individuo se siente impulsado a realizar en respuesta a obsesiones o según reglas</td><td>Lavarse las manos, verificar, ordenar, contar, rezar</td></tr>
+        </table></div>
+        <div class="wn">Especificador de introspección: <strong>Con buena/aceptable introspección · Con poca introspección · Sin introspección/con creencias delirantes</strong></div>
+      </div></div>
+    </div>
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">Trastornos relacionados con el TOC
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="tw"><table><tr><th>Trastorno</th><th>CIE-10</th><th>Foco del comportamiento</th></tr>
+        <tr><td><strong>T. dismórfico corporal</strong></td><td>F45.22</td><td>Preocupación por defectos percibidos en apariencia física</td></tr>
+        <tr><td><strong>T. de acumulación</strong> (Hoarding)</td><td>F42.3</td><td>Dificultad persistente para desechar posesiones. <em>Nuevo DSM-5</em></td></tr>
+        <tr><td><strong>Tricotilomanía</strong></td><td>F63.3</td><td>Arrancamiento recurrente de cabello propio</td></tr>
+        <tr><td><strong>T. de excoriación</strong></td><td>L98.1</td><td>Rascado recurrente de la piel propia. <em>Nuevo DSM-5</em></td></tr>
+        </table></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CAT 7: TRAUMA ═══ -->
+<div id="panel-cat7" class="panel">
+  <div class="badge b-blue">Capítulo 7 · Nuevo en DSM-5</div>
+  <div class="page-title">Trastornos Relacionados con Trauma y Factores de Estrés</div>
+  <div class="acc">
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">TEPT — Trastorno de Estrés Postraumático — F43.10
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="hl"><strong>Criterio A:</strong> Exposición a muerte, lesión grave o violencia sexual real o amenazada (directa, como testigo, por familiar/amigo, exposición repetida a detalles aversivos).</div>
+        <div class="tw"><table><tr><th>Grupo</th><th>Criterio</th><th>Síntomas (mínimo)</th></tr>
+        <tr><td><strong>B — Intrusión</strong></td><td>≥1</td><td>Recuerdos intrusivos, pesadillas, flashbacks, malestar/reactividad al recordar</td></tr>
+        <tr><td><strong>C — Evitación</strong></td><td>≥1</td><td>Evitar recuerdos internos, evitar personas/lugares/situaciones que recuerden el trauma</td></tr>
+        <tr><td><strong>D — Cognición/estado de ánimo negativos</strong></td><td>≥2</td><td>Amnesia, creencias negativas, culpa, emociones negativas persistentes, anhedonia, desapego, incapacidad de emociones positivas</td></tr>
+        <tr><td><strong>E — Reactividad/arousal</strong></td><td>≥2</td><td>Irritabilidad/agresividad, conducta imprudente, hipervigilancia, respuesta de sobresalto exagerada, alteraciones del sueño</td></tr>
+        </table></div>
+        <div class="wn">Criterio F: &gt;1 mes. Criterio G: Disfunción significativa. Especificador: <strong>Con síntomas disociativos</strong> (despersonalización / desrealización).</div>
+      </div></div>
+    </div>
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">TEA y Trastorno de Adaptación — comparativa
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="tw"><table><tr><th>Trastorno</th><th>Exposición</th><th>Duración</th><th>CIE-10</th></tr>
+        <tr><td><strong>T. Estrés Agudo (TEA)</strong></td><td>Evento traumático</td><td>3 días – 1 mes</td><td>F43.0</td></tr>
+        <tr><td><strong>TEPT</strong></td><td>Evento traumático</td><td>&gt;1 mes</td><td>F43.10</td></tr>
+        <tr><td><strong>T. de Adaptación</strong></td><td>Estresor identificable</td><td>&lt;6 meses tras estresor</td><td>F43.2x</td></tr>
+        </table></div>
+        <div class="cr">El T. de Adaptación no requiere que el estresor sea traumático (a diferencia de TEPT y TEA).</div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CAT 8: PERSONALIDAD ═══ -->
+<div id="panel-cat8" class="panel">
+  <div class="badge b-blue">Capítulo 18</div>
+  <div class="page-title">Trastornos de Personalidad</div>
+  <p class="page-sub">Patrón duradero de experiencia interna y comportamiento que se desvía de la cultura, es inflexible, genera malestar y se remonta a la adolescencia/adultez temprana.</p>
+  <div class="acc">
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">Los 10 Trastornos de Personalidad — 3 clusters
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="tw"><table><tr><th>Cluster</th><th>Trastorno</th><th>CIE-10</th><th>Rasgo central</th></tr>
+        <tr><td rowspan="3"><strong>A — Raro/excéntrico</strong></td><td>Paranoide</td><td>F60.0</td><td>Desconfianza y suspicacia generalizadas</td></tr>
+        <tr><td>Esquizoide</td><td>F60.1</td><td>Desapego de relaciones sociales, expresión emocional restringida</td></tr>
+        <tr><td>Esquizotípico</td><td>F21</td><td>Déficits sociales + distorsiones cognitivas/perceptivas + excentricidades</td></tr>
+        <tr><td rowspan="4"><strong>B — Dramático/emocional</strong></td><td>Antisocial</td><td>F60.2</td><td>Desprecio/violación de derechos de los demás (≥18 años, con antecedentes de TC)</td></tr>
+        <tr><td>Límite (TLP/BPD)</td><td>F60.3</td><td>Inestabilidad de relaciones, autoimagen y afectos + impulsividad</td></tr>
+        <tr><td>Histriónico</td><td>F60.4</td><td>Emotividad excesiva y búsqueda de atención</td></tr>
+        <tr><td>Narcisista</td><td>F60.81</td><td>Grandiosidad, necesidad de admiración, falta de empatía</td></tr>
+        <tr><td rowspan="3"><strong>C — Ansioso/temeroso</strong></td><td>Evitativo</td><td>F60.6</td><td>Inhibición social, sentimientos de incompetencia, hipersensibilidad</td></tr>
+        <tr><td>Dependiente</td><td>F60.7</td><td>Necesidad excesiva de cuidado que lleva a sumisión y apego</td></tr>
+        <tr><td>Obsesivo-Compulsivo (TOCP)</td><td>F60.5</td><td>Preocupación por el orden, perfeccionismo, control mental/interpersonal</td></tr>
+        </table></div>
+        <div class="wn">El TOCP (Cluster C) NO es lo mismo que el TOC. El TOCP es un rasgo de personalidad ego-sintónico; el TOC involucra obsesiones y compulsiones ego-distónicas.</div>
+      </div></div>
+    </div>
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">TLP — Criterios diagnósticos (9 criterios, ≥5)
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="tw"><table><tr><th>#</th><th>Criterio</th></tr>
+        <tr><td>1</td><td>Esfuerzos desesperados por evitar el abandono real o imaginario</td></tr>
+        <tr><td>2</td><td>Relaciones interpersonales inestables e intensas (idealización ↔ devaluación)</td></tr>
+        <tr><td>3</td><td>Alteración de la identidad: inestabilidad de la autoimagen</td></tr>
+        <tr><td>4</td><td>Impulsividad en ≥2 áreas potencialmente dañinas (gastos, sexo, drogas, conducción, atracones)</td></tr>
+        <tr><td>5</td><td>Comportamiento, actitud o amenazas suicidas recurrentes / conductas autolesivas</td></tr>
+        <tr><td>6</td><td>Inestabilidad afectiva (disforia episódica, irritabilidad, ansiedad intensa de horas a días)</td></tr>
+        <tr><td>7</td><td>Sentimientos crónicos de vacío</td></tr>
+        <tr><td>8</td><td>Ira inapropiada e intensa / dificultad para controlarla</td></tr>
+        <tr><td>9</td><td>Ideación paranoide transitoria o síntomas disociativos graves bajo estrés</td></tr>
+        </table></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ BUSCADOR ═══ -->
+<div id="panel-buscador" class="panel">
+  <div class="badge b-gold">Herramienta</div>
+  <div class="page-title">Buscador de Trastornos</div>
+  <p class="page-sub">Busca por nombre, síntoma, código CIE-10 o categoría.</p>
+  <input class="search-bar" id="srch" placeholder="Ej: esquizofrenia, F32, ansiedad, pánico, TEA…" oninput="doSearch()"/>
+  <div id="srch-results"></div>
+</div>
+
+<!-- ═══ CIE-10 ═══ -->
+<div id="panel-cie" class="panel">
+  <div class="badge b-gold">Referencia</div>
+  <div class="page-title">Códigos CIE-10 Principales</div>
+  <p class="page-sub">Codificación internacional para los trastornos del DSM-5. El DSM-5 utiliza los códigos CIE-10-CM.</p>
+  <div class="cie-grid" id="cie-grid"></div>
+</div>
+
+<!-- ═══ COMPARATIVA ═══ -->
+<div id="panel-comparativa" class="panel">
+  <div class="badge b-gold">Cambios DSM-5</div>
+  <div class="page-title">DSM-IV-TR vs DSM-5 · Cambios principales</div>
+  <div class="acc">
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">Cambios estructurales generales
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="tw"><table><tr><th>Aspecto</th><th>DSM-IV-TR</th><th>DSM-5</th></tr>
+        <tr><td>Sistema de ejes</td><td>5 ejes (multiaxial)</td><td><em>Eliminado</em> — evaluación dimensional</td></tr>
+        <tr><td>Organización</td><td>Por categorías discretas</td><td>Espectro continuo internalización/externalización</td></tr>
+        <tr><td>Codificación</td><td>CIE-9-CM</td><td>CIE-10-CM</td></tr>
+        <tr><td>Exclusión por duelo</td><td>Excluía depresión mayor</td><td><em>Eliminada</em> — puede diagnosticarse</td></tr>
+        <tr><td>Edición</td><td>2000</td><td>2013</td></tr>
+        </table></div>
+      </div></div>
+    </div>
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">Trastornos eliminados del DSM-IV
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="tw"><table><tr><th>Diagnóstico DSM-IV</th><th>En DSM-5</th></tr>
+        <tr><td>Síndrome de Asperger</td><td>Incluido en TEA Nivel 1</td></tr>
+        <tr><td>Trastorno desintegrativo infantil</td><td>Incluido en TEA</td></tr>
+        <tr><td>TGD no especificado</td><td>Incluido en TEA</td></tr>
+        <tr><td>Subtipos de esquizofrenia (paranoide, desorganizado…)</td><td>Eliminados; se usa dimensiones</td></tr>
+        <tr><td>Distimia (como diagnóstico separado)</td><td>Fusionada en T. Depresivo Persistente</td></tr>
+        <tr><td>Trastorno de identidad disociativo (solo alter)</td><td>Ampliado para incluir amnesia</td></tr>
+        </table></div>
+      </div></div>
+    </div>
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">Trastornos nuevos en DSM-5
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <div class="tw"><table><tr><th>Diagnóstico nuevo DSM-5</th><th>Capítulo</th><th>Nota</th></tr>
+        <tr><td>TDDSEA (Trastorno de desregulación disruptiva del estado de ánimo)</td><td>Depresivos</td><td>Niños &lt;18 años, irritabilidad crónica grave</td></tr>
+        <tr><td>Trastorno de acumulación (Hoarding)</td><td>TOC</td><td>Antes sin diagnóstico específico</td></tr>
+        <tr><td>Trastorno de excoriación</td><td>TOC</td><td>Rascado compulsivo de la piel</td></tr>
+        <tr><td>Trastorno de atracones (Binge Eating)</td><td>Alimentación</td><td>Antes solo en apéndice</td></tr>
+        <tr><td>Disforia premenstrual (TDPM)</td><td>Depresivos</td><td>Antes solo en apéndice</td></tr>
+        <tr><td>T. de comunicación social</td><td>Neurodesarrollo</td><td>Pragmática sin síntomas restrictivos de TEA</td></tr>
+        <tr><td>Trastorno de estrés postraumático complejo (criterios ampliados)</td><td>Trauma</td><td>Capítulo propio separado de ansiedad</td></tr>
+        </table></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══ CASOS CLÍNICOS ═══ -->
+<div id="panel-casos" class="panel">
+  <div class="badge b-gold">Práctica clínica · 3er año Psicología</div>
+  <div class="page-title">Casos Clínicos Breves</div>
+  <p class="page-sub">Practica el razonamiento diagnóstico con viñetas clínicas reales. Lee el caso, formula el diagnóstico probable y luego revisa la respuesta.</p>
+  <div id="caso-container"></div>
+  <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
+    <button class="btn btn-p" id="btn-caso-reveal" onclick="revealCaso()">Ver diagnóstico</button>
+    <button class="btn btn-g" onclick="nextCaso()">Siguiente caso →</button>
+    <button class="btn btn-g" onclick="prevCaso()">← Anterior</button>
+    <button class="btn btn-g" onclick="randCaso()">🎲 Aleatorio</button>
+  </div>
+</div>
+
+<!-- ═══ DIAGNÓSTICO DIFERENCIAL ═══ -->
+<div id="panel-difdiag" class="panel">
+  <div class="badge b-green">Diagnóstico diferencial</div>
+  <div class="page-title">Notas de Diagnóstico Diferencial</div>
+  <p class="page-sub">Las confusiones diagnósticas más frecuentes en 3er año. Para cada par de trastornos, la clave que los distingue.</p>
+  <div class="acc" id="difdiag-acc"></div>
+</div>
+
+<!-- ═══ QUIZ ═══ -->
+<div id="panel-quiz" class="panel">
+  <div class="badge b-red">Simulador diagnóstico</div>
+  <div class="page-title">Simulador de Diagnóstico Diferencial</div>
+  <p class="page-sub">60 preguntas de diagnóstico diferencial basadas en criterios reales del DSM-5. Selecciona categoría y practica.</p>
+  <div class="filter-row">
+    <button class="fbtn active" onclick="fQ('all',this)">Todos</button>
+    <button class="fbtn" onclick="fQ('neuro',this)">Neurodesarrollo</button>
+    <button class="fbtn" onclick="fQ('psico',this)">Psicosis</button>
+    <button class="fbtn" onclick="fQ('animo',this)">Ánimo</button>
+    <button class="fbtn" onclick="fQ('ansiedad',this)">Ansiedad</button>
+    <button class="fbtn" onclick="fQ('persona',this)">Personalidad</button>
+    <button class="fbtn" onclick="fQ('dsm',this)">DSM-IV vs 5</button>
+  </div>
+  <div class="q-nav">
+    <div class="q-cnt" id="q-cnt">Pregunta 1 de 60</div>
+    <div style="display:flex;gap:7px">
+      <button class="btn btn-g" onclick="prevQ()">← Anterior</button>
+      <button class="btn btn-g" onclick="nextQ()">Siguiente →</button>
+      <button class="btn btn-g" onclick="randQ()">🎲</button>
+    </div>
+  </div>
+  <div id="q-container"></div>
+  <div style="display:flex;gap:8px;margin-top:4px">
+    <button class="btn btn-p" id="btn-chk" onclick="checkQ()" disabled>Verificar</button>
+    <button class="btn btn-g" onclick="nextQ()">Siguiente →</button>
+    <button class="btn btn-g" onclick="resetQ()">Reiniciar</button>
+  </div>
+</div>
+
+<!-- ═══ FLASHCARDS ═══ -->
+<div id="panel-flash" class="panel">
+  <div class="badge b-blue" style="background:rgba(192,132,252,.09);color:#c084fc;border-color:rgba(192,132,252,.3)">Flashcards clínicas</div>
+  <div class="page-title">Flashcards DSM-5</div>
+  <p class="page-sub">Haz clic para ver el criterio o respuesta. Filtra por categoría.</p>
+  <div class="filter-row">
+    <button class="fbtn active" onclick="fF('all',this)">Todas</button>
+    <button class="fbtn" onclick="fF('neuro',this)">Neurodesarrollo</button>
+    <button class="fbtn" onclick="fF('psico',this)">Psicosis</button>
+    <button class="fbtn" onclick="fF('animo',this)">Ánimo</button>
+    <button class="fbtn" onclick="fF('ansiedad',this)">Ansiedad</button>
+    <button class="fbtn" onclick="fF('persona',this)">Personalidad</button>
+    <button class="fbtn" onclick="fF('cambios',this)">Cambios DSM-5</button>
+  </div>
+  <div class="fc-wrap">
+    <div class="fc-ctrl">
+      <button class="btn btn-g" onclick="prevF()">←</button>
+      <span class="fc-counter" id="fc-cnt">1 / 55</span>
+      <button class="btn btn-g" onclick="nextF()">→</button>
+      <button class="btn btn-g" onclick="shuffleF()">🔀 Shuffle</button>
+    </div>
+    <div class="flashcard" id="flashcard" onclick="flipF()">
+      <div class="fc-tag2" id="fc-tag"></div>
+      <div class="fc-side" id="fc-side">PREGUNTA CLÍNICA</div>
+      <div class="fc-text" id="fc-text"></div>
+      <div class="fc-hint" id="fc-hint">Haz clic para ver respuesta →</div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer id="footer-dsm" style="margin-left:260px;padding:9px 40px;border-top:1px solid rgba(255,255,255,0.06);background:#09090b;">
+  <p style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:rgba(160,160,160,0.40);letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">© MARTILINE · Luis Cartes Henríquez · Creación original protegida por Derechos de Autor (Convenio de Berna, OMPI). Prohibida su reproducción, adaptación, explotación comercial o uso en entrenamiento de IA sin autorización expresa.</p>
+</footer>
+
+</main>
+</div>
+
+<!-- MODAL -->
+<div class="modal-ov" id="modal">
+  <div class="modal-box">
+    <div style="font-size:1.5rem;margin-bottom:8px">🗑️</div>
+    <div class="modal-title">Limpiar progreso</div>
+    <div class="modal-sub">Selecciona qué deseas reiniciar.</div>
+    <div class="modal-opts">
+      <label class="modal-opt"><input type="checkbox" id="ck-q" checked/><div><strong style="color:var(--t1)">Simulador de preguntas</strong><div style="font-size:10px;color:var(--t3);margin-top:1px">Puntaje y progreso</div></div></label>
+      <label class="modal-opt"><input type="checkbox" id="ck-f" checked/><div><strong style="color:var(--t1)">Flashcards</strong><div style="font-size:10px;color:var(--t3);margin-top:1px">Tarjetas vistas</div></div></label>
+    </div>
+    <div class="modal-actions">
+      <button class="m-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="m-confirm" onclick="confirmReset()">Limpiar</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── NAV ──
+// Salto directo a panel por hash (#cat3, #quiz, #cie…) — lo usa el hub Mente & Decisión
+window.addEventListener('DOMContentLoaded',()=>{const h=decodeURIComponent(location.hash.slice(1));if(h&&document.getElementById('panel-'+h))show(h);});
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  (event?.currentTarget||document.querySelector(`.nav-item[onclick="show('${id}')"]`))?.classList?.add('active');
+  if(window.innerWidth<900) document.getElementById('sb').classList.remove('open');
+  if(id==='quiz') renderQ();
+  if(id==='flash') renderF();
+  if(id==='buscador') doSearch();
+  if(id==='cie') renderCIE();
+  updateKPIs();
+}
+function toggleAcc(btn){
+  const b=btn.nextElementSibling,o=b.classList.contains('open');
+  document.querySelectorAll('.acc-body').forEach(x=>x.classList.remove('open'));
+  document.querySelectorAll('.acc-trigger').forEach(x=>x.classList.remove('open'));
+  if(!o){b.classList.add('open');btn.classList.add('open');}
+}
+
+// ── BUSCADOR DATA ──
+const disorders=[
+  {name:'Discapacidad Intelectual',cat:'Neurodesarrollo',code:'F70-F79',desc:'Déficits en funciones intelectuales y conducta adaptativa. Inicio en período de desarrollo.',keys:['intelectual','DI','cognitivo','desarrollo']},
+  {name:'Trastorno del Espectro Autista (TEA)',cat:'Neurodesarrollo',code:'F84.0',desc:'Déficits en comunicación social + patrones repetitivos de comportamiento. Unifica autismo, Asperger y TGD.',keys:['autismo','asperger','TEA','espectro','repetitivo','social']},
+  {name:'TDAH — Trastorno por Déficit de Atención/Hiperactividad',cat:'Neurodesarrollo',code:'F90.x',desc:'Inatención y/o hiperactividad-impulsividad. ≥6 síntomas (≥5 para ≥17 años) en ≥2 contextos.',keys:['atención','hiperactividad','impulsividad','déficit','TDAH']},
+  {name:'Trastorno específico del aprendizaje',cat:'Neurodesarrollo',code:'F81.x',desc:'Dificultades en lectura (dislexia), escritura o matemáticas (discalculia).',keys:['aprendizaje','dislexia','discalculia','lectura','escritura']},
+  {name:'Esquizofrenia',cat:'Psicóticos',code:'F20.9',desc:'≥2 síntomas (delirios, alucinaciones, discurso desorganizado, síntomas negativos) durante ≥6 meses.',keys:['esquizofrenia','psicosis','delirio','alucinación','negativo']},
+  {name:'Trastorno Esquizofreniforme',cat:'Psicóticos',code:'F20.81',desc:'Igual que esquizofrenia pero duración 1–6 meses.',keys:['esquizofreniforme','psicosis','breve']},
+  {name:'Trastorno Psicótico Breve',cat:'Psicóticos',code:'F23',desc:'Síntomas psicóticos de 1 día a 1 mes con retorno completo al funcionamiento previo.',keys:['psicótico','breve','transitorio']},
+  {name:'Trastorno Delirante',cat:'Psicóticos',code:'F22',desc:'Delirios ≥1 mes sin otros síntomas de esquizofrenia.',keys:['delirante','delirio','paranoia']},
+  {name:'Trastorno Esquizoafectivo',cat:'Psicóticos',code:'F25.x',desc:'Episodio afectivo mayor + síntomas esquizofrénicos durante gran parte del tiempo.',keys:['esquizoafectivo','bipolar','psicosis','afectivo']},
+  {name:'Trastorno Bipolar I',cat:'Trastornos del ánimo',code:'F31.x',desc:'≥1 episodio maníaco (≥7 días). Puede incluir episodios hipomaníacos y depresivos.',keys:['bipolar','maníaco','manía','ánimo']},
+  {name:'Trastorno Bipolar II',cat:'Trastornos del ánimo',code:'F31.81',desc:'≥1 episodio hipomaníaco + ≥1 episodio depresivo mayor. Nunca manía completa.',keys:['bipolar II','hipomanía','depresión','ánimo']},
+  {name:'Ciclotimia',cat:'Trastornos del ánimo',code:'F34.0',desc:'Síntomas hipomaníacos y depresivos durante ≥2 años (1 año en niños) sin criterios completos.',keys:['ciclotimia','bipolar','ciclo','ánimo']},
+  {name:'Trastorno Depresivo Mayor',cat:'Trastornos del ánimo',code:'F32.x/F33.x',desc:'≥5 síntomas SIG-E-CAPS durante ≥2 semanas; ≥1 debe ser estado de ánimo deprimido o anhedonia.',keys:['depresión','depresivo','mayor','TDM','tristeza','anhedonia']},
+  {name:'Trastorno Depresivo Persistente (Distimia)',cat:'Trastornos del ánimo',code:'F34.1',desc:'Depresión crónica ≥2 años. DSM-5 unifica distimia y TDM crónico.',keys:['distimia','depresión','crónica','persistente']},
+  {name:'TDDSEA',cat:'Trastornos del ánimo',code:'F34.81',desc:'Irritabilidad grave crónica en niños <18 años. Nuevo en DSM-5.',keys:['TDDSEA','irritabilidad','niños','desregulación','nuevo']},
+  {name:'Trastorno de Ansiedad Generalizada (TAG)',cat:'Ansiedad',code:'F41.1',desc:'Preocupación excesiva en múltiples temas ≥6 meses + ≥3 síntomas somáticos.',keys:['ansiedad','generalizada','TAG','preocupación','crónica']},
+  {name:'Trastorno de Pánico',cat:'Ansiedad',code:'F41.0',desc:'Ataques de pánico inesperados recurrentes + preocupación persistente o cambio de comportamiento.',keys:['pánico','ataque','taquicardia','palpitaciones','miedo']},
+  {name:'Agorafobia',cat:'Ansiedad',code:'F40.00',desc:'Miedo a situaciones donde escapar sería difícil o embarazoso, o donde no habría ayuda.',keys:['agorafobia','lugares','transporte','multitud','miedo']},
+  {name:'Fobia Específica',cat:'Ansiedad',code:'F40.2xx',desc:'Miedo intenso y específico a objeto o situación, evitación o angustia ≥6 meses.',keys:['fobia','miedo','específica','araña','alturas']},
+  {name:'Trastorno de Ansiedad Social',cat:'Ansiedad',code:'F40.10',desc:'Miedo a situaciones sociales donde puede ser evaluado negativamente ≥6 meses.',keys:['social','fobia social','evaluación','timidez','ansiedad']},
+  {name:'TOC — Trastorno Obsesivo-Compulsivo',cat:'TOC',code:'F42',desc:'Obsesiones (pensamientos intrusivos) y/o compulsiones (comportamientos repetitivos) que generan malestar.',keys:['TOC','obsesivo','compulsivo','obsesión','compulsión','ritual']},
+  {name:'Trastorno Dismórfico Corporal',cat:'TOC',code:'F45.22',desc:'Preocupación por defectos percibidos en la apariencia física; comportamientos repetitivos asociados.',keys:['dismórfico','apariencia','cuerpo','imagen','TOC']},
+  {name:'Trastorno de Acumulación',cat:'TOC',code:'F42.3',desc:'Dificultad persistente para desechar posesiones independientemente de su valor real. Nuevo DSM-5.',keys:['acumulación','hoarding','colección','desechar','nuevo']},
+  {name:'TEPT — Trastorno de Estrés Postraumático',cat:'Trauma',code:'F43.10',desc:'Exposición a trauma + síntomas de intrusión, evitación, cognición negativa y reactividad >1 mes.',keys:['TEPT','trauma','estrés','postraumático','flashback','pesadilla']},
+  {name:'Trastorno de Estrés Agudo (TEA)',cat:'Trauma',code:'F43.0',desc:'Síntomas de estrés 3 días a 1 mes tras exposición a trauma.',keys:['estrés agudo','trauma','TEA','disociación']},
+  {name:'Trastorno de Adaptación',cat:'Trauma',code:'F43.2x',desc:'Síntomas emocionales/conductuales en respuesta a un estresor identificable, dentro de 3 meses.',keys:['adaptación','estresor','ajuste','estrés','situacional']},
+  {name:'Trastorno Límite de Personalidad (TLP/BPD)',cat:'Personalidad',code:'F60.3',desc:'Inestabilidad en relaciones, identidad y afecto + impulsividad. ≥5 de 9 criterios.',keys:['límite','TLP','BPD','borderline','impulsivo','identidad']},
+  {name:'Trastorno Antisocial de Personalidad',cat:'Personalidad',code:'F60.2',desc:'Desprecio y violación de derechos ajenos. ≥18 años con evidencia de trastorno de conducta antes de 15.',keys:['antisocial','sociopata','derechos','conducta','personalidad']},
+  {name:'Trastorno Narcisista de Personalidad',cat:'Personalidad',code:'F60.81',desc:'Grandiosidad, necesidad de admiración, falta de empatía.',keys:['narcisista','narcisismo','grandiosidad','empatía','admiración']},
+  {name:'Trastorno Esquizotípico de Personalidad',cat:'Personalidad',code:'F21',desc:'Déficits sociales + distorsiones cognitivas/perceptivas + excentricidades del comportamiento.',keys:['esquizotípico','excéntrico','mágico','pensamiento','personalidad']},
+];
+
+function doSearch(){
+  const q=(document.getElementById('srch')?.value||'').toLowerCase().trim();
+  const list=q?disorders.filter(d=>[d.name,d.cat,d.code,d.desc,...d.keys].join(' ').toLowerCase().includes(q)):disorders;
+  const el=document.getElementById('srch-results');
+  if(!el)return;
+  if(!list.length){el.innerHTML='<p style="color:var(--t3);font-size:13px;padding:10px 0">No se encontraron trastornos.</p>';return;}
+  el.innerHTML=list.map(d=>`
+    <div class="search-result">
+      <div class="sr-cat">${d.cat}</div>
+      <div class="sr-name">${d.name}</div>
+      <div class="sr-code">${d.code}</div>
+      <div class="sr-desc">${d.desc}</div>
+    </div>`).join('');
+}
+
+// ── CIE-10 DATA ──
+const cieData=[
+  {code:'F20.9',name:'Esquizofrenia',desc:'Trastorno psicótico crónico con síntomas positivos y negativos'},
+  {code:'F21',name:'T. esquizotípico',desc:'Déficits sociales, cognitivos y excentricidades sin psicosis franca'},
+  {code:'F22',name:'T. delirante',desc:'Delirios persistentes sin otros síntomas de esquizofrenia'},
+  {code:'F23',name:'T. psicótico breve',desc:'Síntomas psicóticos transitorios (1 día–1 mes)'},
+  {code:'F25.x',name:'T. esquizoafectivo',desc:'Episodio afectivo + esquizofrenia simultáneos'},
+  {code:'F31.x',name:'T. bipolar I',desc:'Al menos un episodio maníaco completo'},
+  {code:'F31.81',name:'T. bipolar II',desc:'Hipomanía + depresión mayor; nunca manía completa'},
+  {code:'F32.x',name:'T. depresivo mayor (episodio único)',desc:'Episodio depresivo mayor sin historia de manía'},
+  {code:'F33.x',name:'T. depresivo mayor (recurrente)',desc:'Múltiples episodios depresivos mayores'},
+  {code:'F34.0',name:'Ciclotimia',desc:'Fluctuaciones crónicas entre hipomanía y depresión leve ≥2 años'},
+  {code:'F34.1',name:'T. depresivo persistente (Distimia)',desc:'Depresión crónica de bajo grado ≥2 años'},
+  {code:'F34.81',name:'TDDSEA',desc:'Irritabilidad grave crónica en niños — nuevo DSM-5'},
+  {code:'F40.00',name:'Agorafobia',desc:'Miedo a situaciones de difícil escape'},
+  {code:'F40.10',name:'T. de ansiedad social',desc:'Miedo a evaluación negativa en situaciones sociales'},
+  {code:'F40.2xx',name:'Fobia específica',desc:'Miedo intenso y específico a un objeto/situación'},
+  {code:'F41.0',name:'T. de pánico',desc:'Ataques de pánico inesperados + preocupación persistente'},
+  {code:'F41.1',name:'TAG',desc:'Ansiedad generalizada, preocupación excesiva ≥6 meses'},
+  {code:'F42',name:'TOC',desc:'Obsesiones y/o compulsiones que generan malestar'},
+  {code:'F42.3',name:'T. de acumulación',desc:'Dificultad para desechar posesiones — nuevo DSM-5'},
+  {code:'F43.0',name:'T. estrés agudo',desc:'Síntomas postraumáticos 3 días–1 mes'},
+  {code:'F43.10',name:'TEPT',desc:'Síntomas postraumáticos >1 mes: intrusión, evitación, arousal'},
+  {code:'F43.2x',name:'T. de adaptación',desc:'Respuesta desproporcionada a un estresor identificable'},
+  {code:'F45.22',name:'T. dismórfico corporal',desc:'Preocupación por defectos percibidos en apariencia'},
+  {code:'F60.0',name:'T. paranoide de personalidad',desc:'Desconfianza y suspicacia generalizadas'},
+  {code:'F60.1',name:'T. esquizoide de personalidad',desc:'Desapego social y expresión emocional restringida'},
+  {code:'F60.2',name:'T. antisocial de personalidad',desc:'Desprecio/violación de derechos ajenos desde ≥15 años'},
+  {code:'F60.3',name:'T. límite de personalidad (BPD)',desc:'Inestabilidad afectiva, identidad, relaciones e impulsividad'},
+  {code:'F60.4',name:'T. histriónico de personalidad',desc:'Emotividad excesiva y búsqueda de atención'},
+  {code:'F60.5',name:'T. obsesivo-compulsivo de personalidad',desc:'Perfeccionismo, orden y control (ego-sintónico)'},
+  {code:'F60.6',name:'T. evitativo de personalidad',desc:'Inhibición social, sentimientos de incompetencia'},
+  {code:'F60.7',name:'T. dependiente de personalidad',desc:'Necesidad excesiva de cuidado, sumisión'},
+  {code:'F60.81',name:'T. narcisista de personalidad',desc:'Grandiosidad, necesidad de admiración, falta de empatía'},
+  {code:'F70',name:'Discapacidad intelectual leve',desc:'CI 50–70; Sección II DSM-5'},
+  {code:'F84.0',name:'Trastorno del Espectro Autista',desc:'TEA unificado: autismo, Asperger, TGD'},
+  {code:'F90.2',name:'TDAH combinado',desc:'Inatención + hiperactividad-impulsividad'},
+  {code:'F93.0',name:'T. ansiedad por separación',desc:'Miedo excesivo a separarse de figuras de apego'},
+  {code:'L98.1',name:'T. de excoriación',desc:'Rascado compulsivo de la piel — nuevo DSM-5'},
+];
+
+function renderCIE(){
+  const g=document.getElementById('cie-grid');
+  if(!g||g.children.length)return;
+  g.innerHTML=cieData.map(c=>`
+    <div class="cie-card">
+      <div class="cie-code">${c.code}</div>
+      <div class="cie-name">${c.name}</div>
+      <div class="cie-desc">${c.desc}</div>
+    </div>`).join('');
+}
+
+// ── QUIZ DATA — 60 questions ──
+const QQ=[
+  {cat:'neuro',q:'¿Cuántos síntomas del Criterio A del TDAH se requieren para personas de 17 años o más?',opts:['6 síntomas','5 síntomas','4 síntomas','3 síntomas'],a:1,exp:'El DSM-5 redujo el umbral de 6 a 5 síntomas para adolescentes (≥17 años) y adultos, reconociendo que la hiperactividad disminuye con la edad.'},
+  {cat:'neuro',q:'El diagnóstico de Síndrome de Asperger en DSM-5 es:',opts:['Un subtipo de TEA nivel 1','Todavía un diagnóstico independiente','Eliminado; queda dentro del espectro autista','Renombrado como T. de comunicación social'],a:2,exp:'DSM-5 elimina el Síndrome de Asperger como diagnóstico separado. Ahora forma parte del TEA, típicamente nivel 1 (requiere apoyo).'},
+  {cat:'neuro',q:'El Criterio B del TEA incluye ≥2 de 4 síntomas. ¿Cuál de estos NO es uno de ellos?',opts:['Movimientos repetitivos','Insistencia en la igualdad','Dificultad para mantener atención sostenida','Híper/hiporreactividad sensorial'],a:2,exp:'La dificultad para mantener atención es un síntoma del TDAH (Criterio A inatención), NO del TEA. El Criterio B del TEA son: movimientos repetitivos, insistencia en igualdad, intereses restringidos, y reactividad sensorial.'},
+  {cat:'neuro',q:'¿Qué trastorno del neurodesarrollo cursa con dificultad en el uso pragmático del lenguaje pero SIN síntomas restrictivos/repetitivos propios del TEA?',opts:['Trastorno fonológico','Trastorno del lenguaje','Trastorno de comunicación social','Mutismo selectivo'],a:2,exp:'El Trastorno de Comunicación Social (F80.89) es nuevo en DSM-5. Comparte las dificultades pragmáticas del TEA pero sin los síntomas restrictivos y repetitivos.'},
+  {cat:'neuro',q:'En la Discapacidad Intelectual, el DSM-5 prioriza __ sobre el CI para determinar la severidad:',opts:['La edad de inicio','La conducta adaptativa','El rendimiento académico','El CI verbal'],a:1,exp:'DSM-5 cambia el énfasis del CI a la conducta adaptativa (dominios conceptual, social y práctico) para determinar la severidad, ya que el funcionamiento real es más relevante clínicamente.'},
+  {cat:'psico',q:'Una paciente tiene delirios y alucinaciones durante 3 semanas y luego vuelve completamente a su nivel previo. ¿Cuál es el diagnóstico más probable?',opts:['Esquizofrenia','T. esquizofreniforme','T. psicótico breve','T. delirante'],a:2,exp:'T. Psicótico Breve (F23): duración de 1 día a 1 mes con retorno completo. T. Esquizofreniforme: 1–6 meses. Esquizofrenia: ≥6 meses.'},
+  {cat:'psico',q:'¿Cuántos síntomas del Criterio A de la Esquizofrenia deben estar presentes, y cuál es el requisito especial?',opts:['≥1, cualquiera de los 5','≥2, sin restricción','≥2, al menos uno debe ser delirios, alucinaciones o discurso desorganizado','≥3, incluyendo síntomas negativos'],a:2,exp:'Criterio A esquizofrenia: ≥2 síntomas, y al menos uno DEBE ser de los síntomas 1, 2 o 3 (delirios, alucinaciones, discurso desorganizado). Los síntomas negativos solos no son suficientes.'},
+  {cat:'psico',q:'En el DSM-5, los subtipos de esquizofrenia (paranoide, desorganizado, catatónico) fueron:',opts:['Renombrados','Fusionados en T. esquizoafectivo','Eliminados; se usa evaluación dimensional de severidad','Movidos a Sección III'],a:2,exp:'DSM-5 elimina los subtipos de esquizofrenia por baja estabilidad diagnóstica y escasa utilidad clínica. Se reemplaza por dimensiones de severidad.'},
+  {cat:'psico',q:'Un paciente tiene síntomas de episodio depresivo mayor Y alucinaciones. Las alucinaciones persisten 2 semanas incluso cuando no hay depresión activa. ¿Cuál es el diagnóstico?',opts:['TDM con características psicóticas','Esquizofrenia','T. esquizoafectivo tipo depresivo','T. delirante'],a:2,exp:'T. Esquizoafectivo: episodio afectivo mayor + síntomas psicóticos, donde los síntomas psicóticos deben estar presentes ≥2 semanas INCLUSO SIN el episodio afectivo. Esto lo diferencia del TDM con psicosis.'},
+  {cat:'animo',q:'¿Cuál es la diferencia fundamental entre Bipolar I y Bipolar II?',opts:['En BP-I se requiere depresión, en BP-II no','BP-I requiere manía completa; BP-II nunca tiene manía completa, solo hipomanía','BP-I es menos grave que BP-II','BP-II requiere hospitalización, BP-I no'],a:1,exp:'Bipolar I: ≥1 episodio maníaco completo (≥7 días o hospitalización). Bipolar II: hipomanía (≥4 días, sin hospitalización ni deterioro grave) + depresión mayor obligatoria. Nunca manía en BP-II.'},
+  {cat:'animo',q:'Mnemotecnia SIG-E-CAPS: ¿cuántos síntomas se requieren para el diagnóstico de Depresión Mayor y cuántos deben ser "cardinales"?',opts:['≥3, sin restricción','≥5, al menos 1 debe ser ánimo deprimido o anhedonia','≥4, todos pueden ser síntomas somáticos','≥5, todos deben ser síntomas nucleares'],a:1,exp:'≥5 síntomas de SIG-E-CAPS durante ≥2 semanas. Al menos 1 DEBE ser (1) estado de ánimo deprimido o (2) pérdida de interés/placer (anhedonia).'},
+  {cat:'animo',q:'¿Qué cambio hizo el DSM-5 respecto al duelo en el Trastorno Depresivo Mayor?',opts:['Creó un diagnóstico separado de duelo complicado','Eliminó la exclusión por duelo; puede diagnosticarse depresión mayor durante el duelo','Extendió el período de exclusión por duelo a 6 meses','No hizo cambios respecto al duelo'],a:1,exp:'DSM-5 elimina la "exclusión por duelo". En el DSM-IV-TR, el duelo de <2 meses excluía el diagnóstico de TDM. Ahora puede diagnosticarse con nota de precaución clínica.'},
+  {cat:'animo',q:'Un niño de 8 años tiene irritabilidad grave y crónica con arrebatos de ira frecuentes, sin episodios maníacos. ¿Cuál es el diagnóstico DSM-5?',opts:['T. bipolar I en niños','T. bipolar II','TDDSEA','T. oposicionista desafiante'],a:2,exp:'TDDSEA (Trastorno de Desregulación Disruptiva del Estado de Ánimo): Nuevo en DSM-5. Irritabilidad grave y crónica en niños <18 años. Se creó para evitar el sobrediagnóstico de bipolar en niños.'},
+  {cat:'animo',q:'La mnemotecnia DIG-FAST ayuda a recordar los síntomas de:',opts:['Episodio depresivo mayor','Episodio maníaco','T. ansiedad generalizada','T. de pánico'],a:1,exp:'DIG-FAST: Distractibility, Insomnia/Irritability, Grandiosity, Flight of ideas, Activity increase, Sleep deficit, Talkativeness. Son los síntomas del Criterio B del episodio maníaco.'},
+  {cat:'ansiedad',q:'Un paciente lleva 8 meses preocupado excesivamente por trabajo, salud y familia, con tensión muscular, fatiga y dificultad para concentrarse. ¿Cuál es el diagnóstico más probable?',opts:['Trastorno de pánico','T. de ansiedad por separación','Trastorno de ansiedad generalizada (TAG)','Fobia específica'],a:2,exp:'TAG (F41.1): preocupación excesiva sobre múltiples temas durante ≥6 meses + ≥3 síntomas somáticos (tensión, fatiga, concentración, irritabilidad, insomnio, inquietud).'},
+  {cat:'ansiedad',q:'¿Cuántos síntomas somáticos se requieren para diagnosticar un ATAQUE de pánico?',opts:['≥2','≥3','≥4','≥5'],a:2,exp:'Un ataque de pánico requiere ≥4 síntomas de la lista (palpitaciones, sudoración, temblores, ahogo, asfixia, dolor torácico, náuseas, mareo, parestesias, escalofríos, desrealización, miedo a morir/perder el control).'},
+  {cat:'ansiedad',q:'La diferencia clave entre Trastorno de Pánico y ataques de pánico aislados es:',opts:['El número de síntomas por ataque','Los ataques de pánico son siempre esperados; el T. de pánico tiene ataques inesperados','El T. de pánico requiere ataques inesperados recurrentes + preocupación persistente o cambio conductual','El T. de pánico no incluye miedo a morir'],a:2,exp:'T. de Pánico = ataques inesperados recurrentes + ≥1 mes de (a) preocupación por futuros ataques o (b) cambio significativo de comportamiento relacionado con los ataques.'},
+  {cat:'ansiedad',q:'¿Cuánto tiempo deben persistir los síntomas de la Fobia Específica para ser diagnóstico?',opts:['≥2 semanas','≥1 mes','≥6 meses','≥12 meses'],a:2,exp:'Las fobias específicas, la fobia social y la agorafobia requieren ≥6 meses de duración. Esto ayuda a distinguirlas de miedos transitorios normales.'},
+  {cat:'ansiedad',q:'¿En qué se diferencia el TEPT del Trastorno de Estrés Agudo (TEA)?',opts:['El TEPT no incluye síntomas disociativos','El TEA dura 3 días–1 mes; el TEPT dura >1 mes','El TEPT no requiere exposición traumática real','El TEA requiere flashbacks; el TEPT no'],a:1,exp:'TEA (F43.0): síntomas 3 días–1 mes tras trauma. TEPT (F43.10): síntomas >1 mes. Si los síntomas del TEA persisten >1 mes, el diagnóstico cambia a TEPT.'},
+  {cat:'persona',q:'¿Cuántos criterios diagnósticos son necesarios para el Trastorno Límite de Personalidad?',opts:['≥3 de 9','≥4 de 9','≥5 de 9','≥6 de 9'],a:2,exp:'TLP (F60.3): ≥5 de 9 criterios que incluyen: esfuerzos por evitar abandono, relaciones inestables, alteración de identidad, impulsividad, conducta suicida/autolesiva, inestabilidad afectiva, vacío, ira, ideación paranoide.'},
+  {cat:'persona',q:'El Cluster B de los trastornos de personalidad incluye:',opts:['Paranoide, esquizoide, esquizotípico','Antisocial, límite, histriónico, narcisista','Evitativo, dependiente, obsesivo-compulsivo','Esquizotípico, antisocial, narcisista'],a:1,exp:'Cluster B (dramático/emocional): Antisocial, Límite (BPD), Histriónico, Narcisista. Cluster A (raro): Paranoide, Esquizoide, Esquizotípico. Cluster C (ansioso): Evitativo, Dependiente, TOCP.'},
+  {cat:'persona',q:'La diferencia clave entre el TOCP (Trastorno Obsesivo-Compulsivo de Personalidad) y el TOC es:',opts:['El TOCP tiene rituales, el TOC no','El TOC es ego-sintónico; el TOCP es ego-distónico','El TOCP es un rasgo de personalidad ego-sintónico; el TOC tiene obsesiones ego-distónicas','El TOCP requiere más síntomas que el TOC'],a:2,exp:'TOCP (Cluster C): perfeccionismo, orden y control como RASGO de personalidad, EGO-SINTÓNICO (el paciente no lo ve como problema). TOC: obsesiones intrusivas no deseadas, EGO-DISTÓNICAS (generan malestar).'},
+  {cat:'persona',q:'El Trastorno Antisocial de Personalidad requiere que el paciente tenga:',opts:['≥18 años, sin otros requisitos','≥18 años y evidencia de T. de conducta antes de los 15','≥21 años y antecedentes penales','≥18 años y puntuación alta en psicopatía'],a:1,exp:'TAP (F60.2): ≥18 años + evidencia de T. de Conducta antes de los 15 años. Esto establece una continuidad del comportamiento antisocial desde la infancia.'},
+  {cat:'dsm',q:'¿Cuál es el sistema de codificación utilizado en el DSM-5?',opts:['CIE-9-CM','CIE-10-CM','CIE-11','DSM-5 propio'],a:1,exp:'DSM-5 usa CIE-10-CM (Clasificación Internacional de Enfermedades, 10.ª revisión, Modificación Clínica), a diferencia del DSM-IV-TR que usaba CIE-9-CM.'},
+  {cat:'dsm',q:'¿Qué eliminó el DSM-5 que existía en el DSM-IV-TR?',opts:['Los especificadores de severidad','El sistema multiaxial de 5 ejes','La exclusión de trastornos por sustancias','Los criterios de duración'],a:1,exp:'DSM-5 elimina el sistema multiaxial (Eje I: clínico, Eje II: personalidad/DI, Eje III: médico, Eje IV: psicosocial, Eje V: GAF). Ahora se usa evaluación dimensional integrada.'},
+  {cat:'dsm',q:'¿Cuál de estos diagnósticos es completamente NUEVO en el DSM-5 (no existía en DSM-IV)?',opts:['Distimia','T. dismórfico corporal','T. de acumulación (Hoarding)','T. de ansiedad social'],a:2,exp:'El T. de Acumulación (Hoarding, F42.3) es nuevo en DSM-5. También son nuevos: TDDSEA, T. de excoriación, y T. de comunicación social.'},
+  {cat:'dsm',q:'En el DSM-5, el TOC fue separado del capítulo de:',opts:['Trastornos del estado de ánimo','Trastornos de ansiedad','Trastornos somatoformes','Trastornos psicóticos'],a:1,exp:'DSM-5 separó el TOC y trastornos relacionados de los Trastornos de Ansiedad, creando un capítulo propio. Lo mismo ocurrió con TEPT/Trauma.'},
+  // More varied questions
+  {cat:'neuro',q:'¿Antes de qué edad deben presentarse síntomas del TDAH según DSM-5?',opts:['Antes de los 7 años','Antes de los 10 años','Antes de los 12 años','Antes de los 14 años'],a:2,exp:'DSM-5 cambió el criterio de edad de inicio de 7 a 12 años (más flexible), reconociendo que los síntomas pueden no ser problemáticos hasta la adolescencia.'},
+  {cat:'psico',q:'¿Cuál es la duración mínima del Criterio C (síntomas continuos) en la Esquizofrenia?',opts:['1 mes','3 meses','6 meses','12 meses'],a:2,exp:'Criterio C Esquizofrenia: signos continuos durante ≥6 meses, incluyendo ≥1 mes de síntomas activos del Criterio A (o menos si se tratan con éxito).'},
+  {cat:'animo',q:'¿Qué especificador es nuevo en el DSM-5 para el episodio depresivo mayor?',opts:['Con síntomas melancólicos','Con ansiedad','Con inicio en el posparto','Con patrón estacional'],a:1,exp:'El especificador "Con ansiedad" es nuevo en DSM-5. Indica presencia de al menos 2 síntomas ansiosos durante el episodio, lo que tiene implicaciones para el tratamiento.'},
+  {cat:'ansiedad',q:'¿Qué diferencia el T. de Adaptación del T. de Ansiedad Generalizada?',opts:['La duración de los síntomas','El T. de Adaptación requiere un estresor identificable específico; el TAG no','El TAG tiene síntomas somáticos; el T. de adaptación no','El T. de Adaptación es solo en niños'],a:1,exp:'T. de Adaptación: requiere estresor identificable, síntomas en ≤3 meses tras el estresor, desaparecen en ≤6 meses tras cesar el estresor. TAG: preocupación crónica sin estresor específico ≥6 meses.'},
+  {cat:'persona',q:'¿Cuál es el rasgo central del Trastorno Esquizoide de Personalidad?',opts:['Desconfianza y suspicacia','Desapego de relaciones sociales y expresión emocional restringida','Déficits cognitivos y excentricidades','Miedo a la evaluación social'],a:1,exp:'Esquizoide (F60.1): desapego de relaciones sociales + expresión emocional restringida. Sin ideas de referencia ni pensamiento mágico (que sería esquizotípico). Sin paranoia (que sería paranoide).'},
+  {cat:'dsm',q:'La Disforia Premenstrual (TDPM) en el DSM-5 está clasificada en:',opts:['Sección III (en estudio)','Trastornos de ansiedad','Trastornos depresivos','Trastornos somáticos'],a:2,exp:'En DSM-5 el TDPM (F32.81) se elevó a la Sección II (diagnósticos oficiales) dentro de los Trastornos Depresivos. En el DSM-IV-TR estaba en el apéndice (en estudio).'},
+  {cat:'animo',q:'La Ciclotimia dura ≥2 años en adultos. ¿Cuánto debe durar en niños y adolescentes?',opts:['6 meses','1 año','18 meses','2 años'],a:1,exp:'Ciclotimia: ≥2 años en adultos, ≥1 año en niños y adolescentes. Durante este período, los síntomas hipomaníacos y depresivos deben estar presentes al menos la mitad del tiempo.'},
+  {cat:'neuro',q:'¿Cuántos dominios de la conducta adaptativa evalúa el DSM-5 para la Discapacidad Intelectual?',opts:['2 dominios','3 dominios','4 dominios','5 dominios'],a:1,exp:'DSM-5 evalúa 3 dominios: Conceptual (lectura, escritura, cálculo), Social (empatía, habilidades sociales, comunicación) y Práctico (cuidado personal, trabajo, manejo del dinero).'},
+  {cat:'psico',q:'¿Cuál es el diagnóstico cuando un paciente tiene solo delirios persistentes (≥1 mes) sin otros síntomas de esquizofrenia y funciona relativamente bien?',opts:['Esquizofrenia paranoide','T. delirante','T. esquizofreniforme','T. psicótico breve'],a:1,exp:'T. Delirante (F22): solo delirios no extraños persistentes ≥1 mes, sin alucinaciones prominentes ni otros síntomas de esquizofrenia. El funcionamiento general no está muy deteriorado.'},
+  {cat:'ansiedad',q:'¿Cuál es el síntoma PRINCIPAL del TEPT según el DSM-5?',opts:['Ansiedad generalizada','Evitación de todo tipo','Exposición a un trauma + 4 grupos de síntomas (B,C,D,E)','Únicamente los flashbacks'],a:2,exp:'TEPT DSM-5: A) Exposición a trauma + B) Intrusión (≥1) + C) Evitación (≥1) + D) Cognición/ánimo negativos (≥2) + E) Reactividad/arousal (≥2) + F) >1 mes + G) Disfunción significativa.'},
+  {cat:'persona',q:'El Trastorno Narcisista de Personalidad pertenece al Cluster:',opts:['Cluster A','Cluster B','Cluster C','No pertenece a ningún cluster'],a:1,exp:'Narcisista es Cluster B (dramático/emocional), junto con Antisocial, Límite e Histriónico. Los clusters fueron mantenidos del DSM-IV.'},
+  {cat:'dsm',q:'El Trastorno del Espectro Autista en DSM-5 unificó cuántos diagnósticos del DSM-IV?',opts:['2','3','4','5'],a:2,exp:'DSM-5 unificó 4 diagnósticos: (1) Trastorno autista, (2) Síndrome de Asperger, (3) Trastorno desintegrativo infantil, (4) TGD no especificado (TGD-NE).'},
+  {cat:'animo',q:'El episodio maníaco del Bipolar I dura mínimo:',opts:['3 días','4 días','7 días','14 días'],a:2,exp:'Episodio maníaco: ≥7 días (o cualquier duración si requiere hospitalización). Hipomanía: ≥4 días. Esta es la diferencia de duración clave entre manía e hipomanía.'},
+  {cat:'psico',q:'En el T. Esquizoafectivo, ¿cuánto tiempo deben estar presentes los síntomas psicóticos sin episodio afectivo?',opts:['1 semana','2 semanas','1 mes','3 meses'],a:1,exp:'T. Esquizoafectivo: los delirios o alucinaciones deben estar presentes ≥2 semanas SIN episodio afectivo mayor. Esto lo distingue del TDM con psicosis o del T. bipolar con psicosis.'},
+  {cat:'neuro',q:'La presentación "Predominantemente inatenta" del TDAH tiene el código CIE-10:',opts:['F90.0','F90.1','F90.2','F90.9'],a:0,exp:'F90.0 = TDAH presentación predominantemente inatenta. F90.1 = hiperactivo-impulsivo. F90.2 = combinada (la más común y la que el DSM-5 describe primero).'},
+  {cat:'ansiedad',q:'El Mutismo Selectivo se clasifica en DSM-5 dentro de:',opts:['Trastornos del neurodesarrollo','Trastornos disociativos','Trastornos de ansiedad','Trastornos de comunicación'],a:2,exp:'DSM-5 movió el Mutismo Selectivo (F94.0) a los Trastornos de Ansiedad, junto con T. ansiedad por separación y fobias. Reconoce la ansiedad social como base del mutismo.'},
+  {cat:'persona',q:'¿Cuántos trastornos de personalidad están incluidos en el DSM-5 (Sección II)?',opts:['8','10','12','14'],a:1,exp:'DSM-5 Sección II mantiene los mismos 10 trastornos de personalidad del DSM-IV: 3 Cluster A + 4 Cluster B + 3 Cluster C. La Sección III incluye un modelo alternativo dimensional.'},
+  {cat:'dsm',q:'¿En qué sección del DSM-5 se encuentra el "Modelo Alternativo de Trastornos de la Personalidad"?',opts:['Sección I','Sección II','Sección III','Apéndice A'],a:2,exp:'La Sección III del DSM-5 incluye medidas de evaluación, la formulación cultural, el modelo alternativo dimensional de TP, y condiciones en estudio para futuros diagnósticos.'},
+  {cat:'animo',q:'¿Cuál es la duración mínima del Trastorno Depresivo Persistente (antes Distimia)?',opts:['6 meses','1 año','2 años','3 años'],a:2,exp:'T. Depresivo Persistente: ≥2 años en adultos (≥1 año en niños y adolescentes) de estado de ánimo deprimido la mayoría de los días + ≥2 síntomas adicionales.'},
+  {cat:'neuro',q:'¿Cuál de estas afirmaciones sobre el TEA es correcta en DSM-5?',opts:['Los síntomas deben aparecer después de los 3 años','Los síntomas pueden no manifestarse hasta que las demandas sociales excedan las capacidades','El TEA no puede coexistir con TDAH','El TEA requiere retraso del lenguaje'],a:1,exp:'DSM-5 reconoce que en TEA, los síntomas "pueden no manifestarse hasta que las demandas sociales excedan las capacidades". Además, el TEA SÍ puede coexistir con TDAH (cambio del DSM-IV).'},
+  {cat:'dsm',q:'El T. Disruptivo por Desregulación del Ánimo (TDDSEA) fue creado en DSM-5 principalmente para:',opts:['Reemplazar el TDAH','Evitar el sobrediagnóstico de Bipolar en niños','Describir la depresión atípica en niños','Separar la irritabilidad del TOC'],a:1,exp:'El TDDSEA se creó para dar diagnóstico adecuado a niños con irritabilidad crónica grave que antes recibían diagnóstico de Bipolar. El bipolar requiere episodios, no irritabilidad crónica continua.'},
+  {cat:'psico',q:'¿Cuál es la diferencia entre delirios "extraños" y "no extraños" relevante para el diagnóstico?',opts:['Los extraños aparecen en Bipolar; los no extraños en Esquizofrenia','En el T. Delirante solo se permiten delirios no extraños (plausibles culturalmente)','Los delirios extraños son exclusivos del T. psicótico breve','No hay diferencia clínica relevante'],a:1,exp:'T. Delirante (F22): solo delirios NO extraños (plausibles: ser seguido, infectado, amado desde lejos). Esquizofrenia puede incluir delirios extraños (imposibles: robo del pensamiento, control por aliens).'},
+  {cat:'ansiedad',q:'El Trastorno de Ansiedad por Separación en ADULTOS dura mínimo:',opts:['4 semanas','3 meses','6 meses','12 meses'],a:2,exp:'T. Ansiedad por Separación: ≥4 semanas en niños, ≥6 meses en adultos. DSM-5 reconoció que este trastorno existe en adultos (novedad respecto al DSM-IV).'},
+  {cat:'persona',q:'¿Cuál trastorno de personalidad requiere evidencia de conducta antisocial DESDE LA INFANCIA?',opts:['T. narcisista','T. histriónico','T. antisocial','T. límite'],a:2,exp:'TAP (F60.2): requiere ≥18 años + evidencia de T. de Conducta ANTES de los 15 años. Sin evidencia de T. de Conducta en la infancia, no puede diagnosticarse TAP, independiente del comportamiento adulto.'},
+  {cat:'animo',q:'Un paciente en episodio depresivo mayor que perdió a un familiar hace 3 semanas: ¿puede recibir el diagnóstico de TDM según DSM-5?',opts:['No, el duelo excluye el diagnóstico por 2 meses','No, el duelo excluye el diagnóstico por 12 meses','Sí, DSM-5 eliminó la exclusión por duelo','Solo si los síntomas superan los del duelo normal'],a:2,exp:'DSM-5 eliminó la exclusión por duelo. Si cumple criterios, puede diagnosticarse TDM incluso en duelo reciente, con nota de precaución sobre diferenciación de duelo normal vs. depresión.'},
+  {cat:'dsm',q:'¿El Trastorno de Atracones (Binge Eating) es nuevo en DSM-5?',opts:['Sí, es completamente nuevo','Estaba en el DSM-IV-TR en Sección II','Estaba en el apéndice del DSM-IV como condición en estudio','No estaba considerado en DSM-IV'],a:2,exp:'El T. de Atracones estaba en el apéndice del DSM-IV como "condición que requiere más estudio". DSM-5 lo elevó a diagnóstico oficial en Sección II dentro de Trastornos de alimentación.'},
+  {cat:'neuro',q:'¿Puede diagnosticarse simultáneamente TEA y TDAH en DSM-5?',opts:['No, son mutuamente excluyentes','Sí, DSM-5 permite el diagnóstico comórbido','Solo si el TDAH se desarrolló después del TEA','Solo en adultos'],a:1,exp:'DSM-5 permite diagnóstico comórbido de TEA y TDAH. DSM-IV excluía esta comorbilidad. Este cambio refleja evidencia de alta coexistencia real entre ambos trastornos.'},
+  {cat:'ansiedad',q:'El Trastorno Obsesivo-Compulsivo (TOC) se trasladó al DSM-5 al capítulo:',opts:['Trastornos de ansiedad (mismo capítulo)','Trastornos somáticos','TOC y Trastornos Relacionados (capítulo propio)','Trastornos disociativos'],a:2,exp:'DSM-5 crea un capítulo propio: "TOC y Trastornos Relacionados" separado de los Trastornos de Ansiedad. Incluye: TOC, T. dismórfico, T. acumulación, tricotilomanía y T. excoriación.'},
+  {cat:'persona',q:'El Trastorno Evitativo de Personalidad pertenece al Cluster:',opts:['Cluster A','Cluster B','Cluster C','No tiene cluster definido'],a:2,exp:'Cluster C (ansioso/temeroso): Evitativo, Dependiente, Obsesivo-Compulsivo de Personalidad. Se caracteriza por ansiedad y miedo subyacentes.'},
+  {cat:'dsm',q:'¿Qué cambió en el DSM-5 respecto al diagnóstico de TEPT?',opts:['Se eliminó la exposición traumática como criterio','Se separó como capítulo propio de los Trastornos de Ansiedad y se amplió el Criterio A','Se redujo la duración requerida a 2 semanas','Se eliminaron los síntomas de evitación'],a:1,exp:'DSM-5 separó TEPT de ansiedad creando el capítulo "Trauma y Factores de Estrés". También amplió el Criterio A de exposición y reestructuró síntomas en 4 grupos (B,C,D,E en vez de 3).'},
+  {cat:'animo',q:'La Ciclotimia se diferencia del Bipolar II principalmente en:',opts:['La presencia de manía','La ciclotimia tiene síntomas que NO cumplen criterios completos de hipomanía ni de depresión mayor','La ciclotimia solo ocurre en mujeres','El Bipolar II requiere hospitalización'],a:1,exp:'Ciclotimia (F34.0): síntomas hipomaníacos Y depresivos que NO cumplen criterios completos para episodio hipomaníaco ni depresivo mayor, durante ≥2 años. Bipolar II tiene hipomanía e depresión mayor completas.'},
+];
+
+let filteredQ=[...QQ], curQ=0, selOpt=null, answered=false;
+let qStats={total:0,correct:0,seen:new Set()};
+
+function fQ(cat,btn){
+  document.querySelectorAll('.filter-row .fbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  filteredQ=cat==='all'?[...QQ]:QQ.filter(q=>q.cat===cat);
+  curQ=0;selOpt=null;answered=false;renderQ();
+}
+
+function renderQ(){
+  if(!filteredQ.length)return;
+  const q=filteredQ[curQ];
+  qStats.seen.add(curQ);
+  document.getElementById('q-cnt').textContent=`Pregunta ${curQ+1} de ${filteredQ.length}`;
+  const labels=['A','B','C','D'];
+  const catNames={neuro:'Neurodesarrollo',psico:'Psicosis',animo:'Ánimo',ansiedad:'Ansiedad/Trauma',persona:'Personalidad',dsm:'DSM-IV vs 5'};
+  document.getElementById('q-container').innerHTML=`
+    <div class="q-card">
+      <div class="q-tag badge b-blue">${catNames[q.cat]||q.cat}</div>
+      <div class="q-prompt">${q.q}</div>
+      <div class="q-opts">${q.opts.map((o,i)=>`
+        <button class="q-opt" onclick="selQ(${i})">
+          <span class="opt-l">${labels[i]}</span>${o}
+        </button>`).join('')}
+      </div>
+    </div>`;
+  document.getElementById('btn-chk').disabled=true;
+  answered=false;selOpt=null;updateKPIs();
+}
+
+function selQ(i){if(answered)return;selOpt=i;
+  document.querySelectorAll('.q-opt').forEach((b,j)=>b.classList.toggle('selected',j===i));
+  document.getElementById('btn-chk').disabled=false;
+}
+function checkQ(){
+  if(answered||selOpt===null)return;answered=true;
+  const q=filteredQ[curQ];const ok=selOpt===q.a;
+  qStats.total++;if(ok)qStats.correct++;
+  document.querySelectorAll('.q-opt').forEach((b,i)=>{
+    if(i===q.a)b.classList.add('correct');
+    else if(i===selOpt&&!ok)b.classList.add('wrong');
+  });
+  const card=document.querySelector('.q-card');
+  const exp=document.createElement('div');exp.className='q-exp';
+  exp.innerHTML=`<div class="lbl">${ok?'✓ Correcto':'✗ Incorrecto'}</div><p>${q.exp}</p>`;
+  card.appendChild(exp);
+  document.getElementById('btn-chk').disabled=true;updateKPIs();
+}
+function nextQ(){curQ=(curQ+1)%filteredQ.length;selOpt=null;answered=false;renderQ();}
+function prevQ(){curQ=(curQ-1+filteredQ.length)%filteredQ.length;selOpt=null;answered=false;renderQ();}
+function randQ(){curQ=Math.floor(Math.random()*filteredQ.length);selOpt=null;answered=false;renderQ();}
+function resetQ(){qStats={total:0,correct:0,seen:new Set()};curQ=0;selOpt=null;answered=false;filteredQ=[...QQ];renderQ();updateKPIs();}
+
+// ── FLASHCARDS ──
+const FF=[
+  {cat:'neuro',q:'¿Cuántos síntomas del Criterio A necesita un adulto (≥17 años) para TDAH en DSM-5?',a:'≥5 síntomas (inatención o hiperactividad-impulsividad). El DSM-IV requería ≥6 para todas las edades.'},
+  {cat:'neuro',q:'¿Qué diagnósticos del DSM-IV se unificaron en el TEA del DSM-5?',a:'Trastorno Autista + Síndrome de Asperger + Trastorno Desintegrativo Infantil + TGD-NE → TEA (espectro único)'},
+  {cat:'neuro',q:'¿Cuáles son los 3 niveles de severidad del TEA?',a:'Nivel 1: Requiere apoyo · Nivel 2: Requiere apoyo sustancial · Nivel 3: Requiere apoyo muy sustancial'},
+  {cat:'neuro',q:'Criterio B del TEA: ≥2 de 4 síntomas. ¿Cuáles son los 4?',a:'1) Movimientos/habla repetitivos · 2) Insistencia en igualdad/inflexibilidad · 3) Intereses restringidos e intensos · 4) Híper/hiporreactividad sensorial'},
+  {cat:'neuro',q:'¿Qué nueva presentación del DSM-5 NO requería síntomas restrictivos y cursa con pragmática deficiente?',a:'Trastorno de Comunicación Social (F80.89) — nuevo en DSM-5. Pragmática deficiente sin síntomas restrictivos/repetitivos.'},
+  {cat:'psico',q:'Criterio A Esquizofrenia: ≥2 síntomas, ≥1 mes. ¿Cuál es la restricción?',a:'Al menos 1 síntoma DEBE ser: delirios (1), alucinaciones (2) o discurso desorganizado (3). Los síntomas negativos solos no bastan.'},
+  {cat:'psico',q:'Duración diagnóstica: T. Psicótico Breve vs. T. Esquizofreniforme vs. Esquizofrenia',a:'Breve: 1 día–1 mes · Esquizofreniforme: 1–6 meses · Esquizofrenia: ≥6 meses (con ≥1 mes de síntomas activos)'},
+  {cat:'psico',q:'¿Qué eliminó DSM-5 de la Esquizofrenia que tenía el DSM-IV?',a:'Los subtipos: paranoide, desorganizado, catatónico, indiferenciado y residual. Reemplazados por evaluación dimensional de severidad.'},
+  {cat:'psico',q:'T. Esquizoafectivo vs. TDM con psicosis: diferencia clave',a:'T. Esquizoafectivo: psicosis presente ≥2 semanas SIN episodio afectivo. TDM con psicosis: la psicosis SOLO aparece durante los episodios depresivos.'},
+  {cat:'animo',q:'Mnemotecnia SIG-E-CAPS: ¿qué representa cada letra?',a:'Sleep · Interest (anhedonia) · Guilt · Energy · Concentration · Appetite · Psychomotor · Suicidality — ≥5 síntomas, ≥1 cardinal'},
+  {cat:'animo',q:'Mnemotecnia DIG-FAST del episodio maníaco',a:'Distractibility · Insomnia/Irritability · Grandiosity · Flight of ideas · Activity increase · Sleep deficit · Talkativeness'},
+  {cat:'animo',q:'Diferencia Manía (Bipolar I) vs. Hipomanía (Bipolar II)',a:'Manía: ≥7 días, deterioro grave o hospitalización. Hipomanía: ≥4 días, sin deterioro grave ni hospitalización, NUNCA en Bipolar I.'},
+  {cat:'animo',q:'¿Qué cambió en DSM-5 respecto al duelo y TDM?',a:'DSM-5 eliminó la exclusión por duelo. En DSM-IV, el duelo <2 meses excluía el TDM. Ahora puede diagnosticarse con precaución clínica.'},
+  {cat:'animo',q:'TDDSEA: ¿qué es y por qué se creó?',a:'Trastorno de Desregulación Disruptiva del Estado de Ánimo. Irritabilidad crónica grave en niños <18 años. Creado para evitar sobrediagnóstico de Bipolar en niños.'},
+  {cat:'animo',q:'T. Depresivo Persistente: duración y combinación con DSM-IV',a:'≥2 años en adultos (≥1 año en niños). DSM-5 unificó la Distimia y el TDM crónico bajo este diagnóstico.'},
+  {cat:'ansiedad',q:'TAG: criterios centrales',a:'Preocupación excesiva múltiples temas ≥6 meses + difícil de controlar + ≥3 síntomas (inquietud, fatiga, concentración, irritabilidad, tensión muscular, insomnio)'},
+  {cat:'ansiedad',q:'T. de Pánico: diferencia de un ataque de pánico aislado',a:'T. de Pánico = ataques inesperados RECURRENTES + ≥1 mes de: preocupación por futuros ataques Y/O cambio conductual significativo'},
+  {cat:'ansiedad',q:'Ataque de pánico: ¿cuántos síntomas se requieren y en cuánto tiempo?',a:'≥4 síntomas que alcanzan su pico en minutos. Los síntomas incluyen palpitaciones, sudoración, temblores, disnea, dolor torácico, mareo, desrealización, miedo a morir/perder control.'},
+  {cat:'ansiedad',q:'TEPT: 4 grupos de síntomas (B, C, D, E)',a:'B) Intrusión ≥1 · C) Evitación ≥1 · D) Cognición/ánimo negativos ≥2 · E) Reactividad/arousal ≥2 · Duración >1 mes'},
+  {cat:'ansiedad',q:'TEA vs. TEPT vs. T. Adaptación: duraciones',a:'TEA: 3 días–1 mes. TEPT: >1 mes. T. Adaptación: síntomas en ≤3 meses tras estresor, ceden en ≤6 meses (NO requiere trauma).'},
+  {cat:'ansiedad',q:'¿A qué capítulo del DSM-5 se trasladó el TOC?',a:'Capítulo propio: "TOC y Trastornos Relacionados". Antes estaba en Trastornos de Ansiedad (DSM-IV). Incluye: T. dismórfico, T. acumulación, tricotilomanía, T. excoriación.'},
+  {cat:'ansiedad',q:'TOC: diferencia entre obsesiones y compulsiones',a:'Obsesiones: pensamientos intrusivos no deseados, ego-DISTÓNICOS, generan ansiedad. Compulsiones: comportamientos repetitivos para neutralizar obsesiones, egodistónicos.'},
+  {cat:'persona',q:'Los 3 clusters de personalidad y sus características',a:'A: Raro/excéntrico (Paranoide, Esquizoide, Esquizotípico) · B: Dramático/emocional (Antisocial, Límite, Histriónico, Narcisista) · C: Ansioso/temeroso (Evitativo, Dependiente, TOCP)'},
+  {cat:'persona',q:'TLP (BPD): ¿cuántos de cuántos criterios?',a:'≥5 de 9 criterios: abandono, relaciones inestables, identidad, impulsividad, suicidio/autolesión, inestabilidad afectiva, vacío, ira, disociación/paranoia bajo estrés'},
+  {cat:'persona',q:'TOCP vs. TOC: diferencia fundamental',a:'TOCP (Cluster C): rasgo de personalidad ego-SINTÓNICO (el paciente no lo ve como problema). TOC: obsesiones y compulsiones ego-DISTÓNICAS (generan malestar y son indeseadas).'},
+  {cat:'persona',q:'TAP: requisito de edad y antecedentes',a:'Trastorno Antisocial: ≥18 años + evidencia de Trastorno de Conducta ANTES de los 15 años. Sin antecedentes de TC en infancia, no se diagnostica TAP.'},
+  {cat:'cambios',q:'¿Qué eliminó el DSM-5 que existía en el DSM-IV-TR?',a:'1) Sistema multiaxial (5 ejes) · 2) Subtipos de esquizofrenia · 3) Síndrome de Asperger · 4) Exclusión por duelo en TDM · 5) Exclusión de comorbilidad TEA+TDAH'},
+  {cat:'cambios',q:'Nuevos diagnósticos en DSM-5 (los más importantes)',a:'TDDSEA · T. de Acumulación · T. de Excoriación · T. de Comunicación Social · TDPM (elevado de apéndice) · T. de Atracones (elevado)'},
+  {cat:'cambios',q:'¿Qué capítulos son nuevos (separados) en DSM-5?',a:'1) TOC y Trastornos Relacionados · 2) Trauma y Factores de Estrés · Antes ambos estaban en el capítulo de Trastornos de Ansiedad.'},
+  {cat:'cambios',q:'Codificación DSM-IV vs. DSM-5',a:'DSM-IV-TR: CIE-9-CM · DSM-5: CIE-10-CM. Los códigos cambian (ej: F20.9 = esquizofrenia en DSM-5 vs. 295.90 en DSM-IV).'},
+  {cat:'cambios',q:'¿Qué cambió en el criterio de edad de inicio del TDAH entre DSM-IV y DSM-5?',a:'DSM-IV: síntomas antes de los 7 años. DSM-5: síntomas antes de los 12 años (más flexible, reconoce presentación tardía).'},
+  {cat:'cambios',q:'Modelo Alternativo de TP en DSM-5: ¿dónde está y qué propone?',a:'Sección III (emergente). Propone evaluación dimensional en lugar de categorial: deterioro en identidad/autocontrol/empatía/intimidad + rasgos de personalidad patológicos.'},
+];
+
+let filteredF=[...FF], fcIdx=0, fcFlipped=false, fcSeen=new Set();
+
+function fF(cat,btn){
+  document.querySelectorAll('.filter-row .fbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  filteredF=cat==='all'?[...FF]:FF.filter(f=>f.cat===cat);
+  fcIdx=0;fcFlipped=false;renderF();
+}
+function renderF(){
+  if(!filteredF.length)return;
+  const f=filteredF[fcIdx];
+  fcSeen.add(f.q);
+  document.getElementById('fc-cnt').textContent=`${fcIdx+1} / ${filteredF.length}`;
+  const catNames={neuro:'Neurodesarrollo',psico:'Psicosis',animo:'Ánimo',ansiedad:'Ansiedad/Trauma',persona:'Personalidad',cambios:'Cambios DSM-5'};
+  document.getElementById('fc-tag').textContent=catNames[f.cat]||f.cat;
+  document.getElementById('fc-side').textContent=fcFlipped?'RESPUESTA':'PREGUNTA CLÍNICA';
+  document.getElementById('fc-text').textContent=fcFlipped?f.a:f.q;
+  document.getElementById('fc-hint').textContent=fcFlipped?'← Clic para volver':'Clic para ver respuesta →';
+  document.getElementById('flashcard').style.background=fcFlipped?'rgba(26,115,200,0.07)':'var(--surface)';
+  document.getElementById('kpi-fc').textContent=fcSeen.size;
+  document.getElementById('kpi-fc-tot').textContent=FF.length;
+  updateKPIs();
+}
+function flipF(){fcFlipped=!fcFlipped;renderF();}
+function nextF(){fcIdx=(fcIdx+1)%filteredF.length;fcFlipped=false;renderF();}
+function prevF(){fcIdx=(fcIdx-1+filteredF.length)%filteredF.length;fcFlipped=false;renderF();}
+function shuffleF(){filteredF.sort(()=>Math.random()-.5);fcIdx=0;fcFlipped=false;renderF();}
+
+// ── KPIs ──
+function updateKPIs(){
+  document.getElementById('kpi-done').textContent=qStats.total;
+  if(qStats.total>0){
+    const pct=Math.round((qStats.correct/qStats.total)*100);
+    document.getElementById('kpi-acc').textContent=pct+'%';
+    document.getElementById('kpi-acc-sub').textContent=`${qStats.correct} de ${qStats.total} correctas`;
+  }
+  document.getElementById('kpi-fc').textContent=fcSeen.size;
+  document.getElementById('kpi-fc-tot').textContent=FF.length;
+}
+
+// ── MODAL ──
+function openModal(){document.getElementById('modal').classList.add('open');}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+function confirmReset(){
+  const acts=[];
+  if(document.getElementById('ck-q').checked){resetQ();acts.push('Simulador');}
+  if(document.getElementById('ck-f').checked){fcSeen=new Set();fcIdx=0;fcFlipped=false;filteredF=[...FF];renderF();acts.push('Flashcards');}
+  updateKPIs();closeModal();
+  showToast(acts.length?'✓ Limpiado: '+acts.join(' + '):'Nada seleccionado');
+}
+document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
+
+
+// ═══════════════════════════════════════════
+// CASOS CLÍNICOS
+// ═══════════════════════════════════════════
+const CASOS = [
+  {
+    n:1, cat:'Neurodesarrollo',
+    vignette:'Matías, 8 años, lleva 2 años con dificultades para leer y escribir a pesar de inteligencia normal. Confunde letras similares (b/d, p/q), lee muy lento, silabea con esfuerzo y comete errores frecuentes al escribir al dictado. Sus padres también tuvieron dificultades para leer en la infancia. Su nivel de comprensión verbal es adecuado cuando el texto se le lee en voz alta.',
+    question:'¿Cuál es el diagnóstico más probable según DSM-5? Identifica el criterio diferencial clave.',
+    dx:'Trastorno Específico del Aprendizaje con dificultad en lectura (Dislexia) — F81.0',
+    exp:'Los criterios se cumplen: (A) dificultades persistentes en precisión/velocidad lectora y escritura, (B) por debajo de lo esperado para su edad y CI, (C) inicio en años escolares, (D) no explicado por DI, problemas sensoriales ni falta de instrucción. La historia familiar sugiere base genética. Diferencial: no es DI (comprensión verbal normal), no es TDAH (el foco es específico a la lectoescritura).',
+    criterios:'DSM-5: ≥1 síntoma durante ≥6 meses. CIE-10: F81.0. Especificador: con dificultad en lectura. Severidad: leve/moderado/grave según impacto.'
+  },
+  {
+    n:2, cat:'TDAH',
+    vignette:'Camila, 9 años. La profesora reporta que "nunca termina sus tareas", pierde constantemente sus útiles, "parece no escuchar cuando se le habla directamente" y se olvida de entregar las tareas que sí hizo. En casa ocurre lo mismo: no termina lo que empieza. Sin embargo, puede jugar videojuegos durante horas sin interrupciones. No es inquieta ni impulsiva.',
+    question:'¿Cuál es el diagnóstico DSM-5 y qué presentación específica corresponde?',
+    dx:'TDAH, Presentación Predominantemente Inatenta — F90.0',
+    exp:'Cumple ≥6 síntomas de inatención: no presta atención a detalles, no mantiene atención en tareas (pero SÍ en videojuegos — lo que es típico), no escucha, no termina tareas, pierde objetos, olvidadiza. Importante: en TDAH inatento NO se requiere hiperactividad. El hecho de que pueda jugar videojuegos no descarta el diagnóstico — los videojuegos ofrecen retroalimentación constante que facilita el foco.',
+    criterios:'≥6/9 síntomas inatención, presentes en ≥2 contextos, antes de los 12 años, que generan disfunción. CIE-10: F90.0.'
+  },
+  {
+    n:3, cat:'Psicosis',
+    vignette:'Rodrigo, 22 años, universitario. Desde hace 8 meses cree que sus compañeros lo espían a través de la cámara del celular para robarle sus ideas. Escucha voces que comentan sus acciones. Ha dejado la universidad. Su higiene ha disminuido, habla muy poco y muestra indiferencia afectiva. Antes era sociable y buen alumno. No consume drogas.',
+    question:'¿Cuál es el diagnóstico? ¿Qué síntomas positivos y negativos identificas?',
+    dx:'Esquizofrenia — F20.9',
+    exp:'Criterio A: ≥2 síntomas (+1 debe ser del grupo 1-3). Delirios de referencia/persecución (1✓) + Alucinaciones auditivas (2✓) + Síntomas negativos: alogia, abulia, aplanamiento afectivo (5✓). Criterio B: disfunción académica y social marcada. Criterio C: >6 meses de signos continuos. Diferencial vs. T. esquizofreniforme: la duración >6 meses confirma esquizofrenia.',
+    criterios:'A) ≥2 síntomas ≥1 mes (al menos 1 de: delirios/alucinaciones/discurso desorganizado). B) Disfunción. C) ≥6 meses. D-F) Exclusiones.'
+  },
+  {
+    n:4, cat:'Trastornos del ánimo',
+    vignette:'Andrea, 35 años, lleva 3 semanas durmiendo 10-11 horas diarias, ha subido 5 kg por comer en exceso, se siente "con plomo en los pies", extremadamente sensible al rechazo social y con una reacción de su estado de ánimo que mejora brevemente ante eventos positivos.',
+    question:'¿Qué especificador del episodio depresivo mayor corresponde a este cuadro?',
+    dx:'Trastorno Depresivo Mayor con características atípicas',
+    exp:'Las "características atípicas" se caracterizan por: (A) reactividad del estado de ánimo (mejora ante eventos positivos — diferencia clave con melancolía), más ≥2 de: (B) hipersomnia, hiperfagia/aumento de peso, parálisis de plomo, sensibilidad al rechazo. Andrea cumple todos. Diferencial con melancolía: la melancolía NO mejora con eventos positivos y tiene culpa excesiva/peor en la mañana.',
+    criterios:'Especificador "Con características atípicas": reactivo al ánimo + ≥2 de hipersomnia/hiperfagia/parálisis de plomo/sensibilidad al rechazo.'
+  },
+  {
+    n:5, cat:'Trastornos del ánimo',
+    vignette:'Felipe, 28 años. Hace 2 semanas comenzó a dormir solo 3 horas sintiendo que "no necesita más", habla sin parar, tiene planes de negocios "millonarios", gastó sus ahorros en acciones de criptomonedas. Su jefe lo suspendió por "comportamiento inapropiado". Fue hospitalizado. No tiene episodios depresivos previos.',
+    question:'¿Cuál es el diagnóstico? ¿Qué diferencia este cuadro de Bipolar II?',
+    dx:'Trastorno Bipolar I, episodio maníaco actual — F31.x',
+    exp:'Episodio maníaco: ánimo elevado/expansivo + ≥3 síntomas DIG-FAST: disminución de sueño, verborrea, grandiosidad, comportamiento impulsivo de alto riesgo (gastos excesivos). Duración ≥7 días. Hospitalizacion confirma manía. Diferencial con Bipolar II: en BP-II NUNCA hay manía completa ni hospitalización; solo hipomanía (≥4 días, sin deterioro grave).',
+    criterios:'BP-I: ≥1 episodio maníaco. Manía: ≥7 días (o cualquier duración si hospitalización) + ≥3 síntomas del Criterio B (≥4 si solo irritable).'
+  },
+  {
+    n:6, cat:'Ansiedad',
+    vignette:'Carmen, 32 años. Hace 9 meses que se preocupa "por todo": su trabajo, la salud de sus hijos, las finanzas, el futuro. Le cuesta controlar las preocupaciones. Está siempre tensa, con dolores musculares, cansada y le cuesta concentrarse. Duerme mal. No tiene ataques de pánico ni evita situaciones específicas.',
+    question:'¿Cuál es el diagnóstico? Identifica los síntomas del Criterio B presentes.',
+    dx:'Trastorno de Ansiedad Generalizada (TAG) — F41.1',
+    exp:'TAG: (A) preocupación excesiva múltiples temas ≥6 meses (9 meses ✓), difícil de controlar (✓). (B) ≥3 síntomas: tensión muscular (✓), fatiga (✓), dificultad para concentrarse (✓), insomnio (✓) — cumple 4 de 6. (C) malestar significativo. Diferencial con T. de Pánico: no hay ataques. Con T. Ansiedad Social: la preocupación no se limita a situaciones sociales.',
+    criterios:'TAG: preocupación ≥6 meses + ≥3 síntomas somáticos (adultos) + disfunción. CIE-10: F41.1.'
+  },
+  {
+    n:7, cat:'Ansiedad',
+    vignette:'José, 19 años. Hace 6 meses presenta episodios súbitos de terror intenso con palpitaciones, sudoración, sensación de asfixia, mareo y miedo a "volverse loco". Duran 10 minutos. Ocurren inesperadamente, incluso al despertar. Entre episodios está preocupado constantemente "por si le vuelve a dar". Ha dejado de hacer deporte ni ir al mall por miedo a tener un episodio.',
+    question:'¿Cuál es el diagnóstico y qué diferencia un ataque de pánico aislado del diagnóstico establecido?',
+    dx:'Trastorno de Pánico — F41.0',
+    exp:'Ataques inesperados recurrentes (✓) con ≥4 síntomas somáticos (palpitaciones, sudor, asfixia, mareo, miedo a volverse loco = 5✓). + Criterio B: ≥1 mes de (a) preocupación persistente por ataques (✓) Y (b) cambio conductual significativo — evitación de deporte y mall (✓). Un ataque de pánico aislado es un síntoma, no un diagnóstico; el T. de Pánico requiere los ataques RECURRENTES + consecuencias.',
+    criterios:'T. Pánico: ataques inesperados recurrentes + ≥1 mes de preocupación Y/O cambio conductual. CIE-10: F41.0.'
+  },
+  {
+    n:8, cat:'TOC/Trauma',
+    vignette:'Valeria, 24 años. Enfermera. Desde hace 5 meses tiene pensamientos intrusivos de que "puede haber infectado a sus pacientes con gérmenes" a pesar de lavarse las manos con protocolo. Los pensamientos le generan angustia intensa. Para aliviarla, se lava las manos hasta 40 veces por turno, durante 10-15 minutos cada vez, con la piel irritada. Sabe que es excesivo pero "no puede parar".',
+    question:'¿Cuál es el diagnóstico? Identifica la obsesión y la compulsión.',
+    dx:'Trastorno Obsesivo-Compulsivo (TOC) — F42, Con buena introspección',
+    exp:'Obsesión: pensamiento intrusivo recurrente de contaminar pacientes (ego-distónico, genera ansiedad). Compulsión: lavado de manos excesivo para neutralizar la obsesión. Las compulsiones NO generan placer real, solo alivio temporal. El specifier "con buena introspección" = Valeria reconoce que es excesivo. Diferencial con TOCP: en TOCP el orden/limpieza es ego-SINTÓNICO (no genera malestar). Diferencial con fobia: la fobia es a la contaminación externa, el TOC involucra la responsabilidad propia.',
+    criterios:'TOC: Obsesiones Y/O Compulsiones que consumen >1 hora/día o causan malestar/disfunción. No por sustancias ni enf. médica.'
+  },
+  {
+    n:9, cat:'TOC/Trauma',
+    vignette:'Pablo, 26 años, soldado. Participó en combate hace 8 meses donde presenció la muerte de un compañero. Desde entonces tiene pesadillas recurrentes, recuerdos intrusivos del evento. Evita hablar del tema y noticias de guerra. Se siente distante de su familia, con ira intensa, dificultad para dormir e hipervigilancia constante. Reacciona de forma exagerada a ruidos fuertes.',
+    question:'¿Cuál es el diagnóstico y qué 4 grupos de síntomas cumple?',
+    dx:'Trastorno de Estrés Postraumático (TEPT) — F43.10',
+    exp:'(A) Exposición directa a muerte de compañero (✓). (B) Intrusión ≥1: pesadillas (✓) + recuerdos intrusivos (✓). (C) Evitación ≥1: evita hablar del tema y noticias (✓). (D) Cognición/ánimo negativo ≥2: distanciamiento afectivo (✓) + ira (✓). (E) Arousal/reactividad ≥2: insomnio (✓) + hipervigilancia (✓) + sobresalto exagerado (✓). (F) >1 mes: 8 meses (✓). Todos los criterios cumplidos.',
+    criterios:'TEPT: A) Trauma + B≥1 + C≥1 + D≥2 + E≥2 + F) >1 mes + G) Disfunción significativa.'
+  },
+  {
+    n:10, cat:'Personalidad',
+    vignette:'Daniela, 23 años. Historia de relaciones intensas y caóticas. Cuando empieza a salir con alguien lo idealiza completamente; si la persona falla mínimamente, la "odia" y corta el vínculo. Ha tenido 3 intentos de autolesión en el último año cuando siente que va a ser abandonada. Describe sentirse "vacía" casi siempre. Su estado de ánimo cambia drásticamente en horas. Ha tenido gastos impulsivos y atracones.',
+    question:'¿Cuál es el diagnóstico y cuántos criterios cumple?',
+    dx:'Trastorno Límite de Personalidad (TLP/BPD) — F60.3',
+    exp:'Evaluando los 9 criterios: (1) esfuerzos por evitar abandono (autolesión al sentir abandono ✓) (2) relaciones inestables idealización/devaluación ✓ (3) identidad/autoimagen inestable (vacío ✓) (4) impulsividad: gastos, atracones ✓ (5) conducta autolesiva ✓ (6) inestabilidad afectiva (cambios en horas ✓) (7) sentimientos crónicos de vacío ✓. Cumple ≥7 de 9 criterios (umbral mínimo: ≥5). Diferencial con Bipolar: los cambios de ánimo del TLP duran horas y son reactivos al interpersonal; la manía/hipomanía dura días.',
+    criterios:'TLP: ≥5 de 9 criterios. CIE-10: F60.3. Cluster B. Importante: los síntomas deben ser estables desde adultez temprana y no limitados a episodios del eje I.'
+  },
+  {
+    n:11, cat:'Neurodesarrollo',
+    vignette:'Tomás, 5 años. No responde cuando se le llama por su nombre. No señala para mostrar objetos de interés. No hace juego simbólico. Alinea compulsivamente sus carros de juguete en fila exacta y se angustia si alguien los mueve. Tiene hipersensibilidad al ruido (se tapa los oídos con cualquier sonido). Dice algunas palabras sueltas pero no frases de 2 palabras.',
+    question:'¿Cuál es el diagnóstico y el nivel de severidad probable?',
+    dx:'Trastorno del Espectro Autista (TEA) — F84.0, Nivel 2 (Requiere apoyo sustancial)',
+    exp:'Criterio A (comunicación social): no responde al nombre (✓), no señala (falta de atención conjunta ✓), ausencia de juego simbólico (✓). Criterio B (≥2 de 4): conductas repetitivas (alinear carros ✓), insistencia en igualdad (angustia si los mueven ✓), hiporreactividad sensorial (hipersensibilidad al ruido ✓). Nivel 2 (apoyo sustancial): déficits marcados en comunicación social con mínima iniciativa; los comportamientos repetitivos interfieren claramente.',
+    criterios:'TEA: A) Déficits comunicación social + B) ≥2 síntomas restrictivos/repetitivos. Ambos desde período temprano. Niveles 1-2-3 según apoyo requerido.'
+  },
+  {
+    n:12, cat:'Trastornos del ánimo',
+    vignette:'Sofía, 17 años. Hace 3 meses que tiene ánimo deprimido casi todos los días, ha perdido interés en la danza que antes amaba. Duerme 12 horas. Se siente culpable "por existir". Le cuesta concentrarse en clases. Ha perdido 4 kg. Su pediatra descartó hipotiroidismo.',
+    question:'¿Cuál es el diagnóstico? ¿Qué síntomas SIG-E-CAPS identifica y cuántos cumple?',
+    dx:'Trastorno Depresivo Mayor, episodio único, moderado — F32.1',
+    exp:'SIG-E-CAPS: Sleep (hipersomnia ✓), Interest (anhedonia: perdió interés en danza ✓ — SÍNTOMA CARDINAL), Guilt (culpa excesiva ✓), Energy (¿fatiga? implícita), Concentration (dificultad ✓), Appetite/weight (pérdida 4 kg ✓). Ánimo deprimido casi todos los días ✓ (SÍNTOMA CARDINAL 2). Cumple ≥6 síntomas (umbral: ≥5) con ambos cardinales. Duración 3 meses (≥2 semanas ✓). Exclusión médica (hipotiroidismo descartado ✓).',
+    criterios:'TDM: ≥5 síntomas SIG-E-CAPS ≥2 semanas, con ≥1 cardinal. Moderado: síntomas entre leve y grave. CIE-10: F32.1.'
+  }
+];
+
+let casoIdx=0, casoRevealed=false;
+
+function renderCaso(){
+  const caso=CASOS[casoIdx];
+  casoRevealed=false;
+  document.getElementById('btn-caso-reveal').textContent='Ver diagnóstico';
+  document.getElementById('caso-container').innerHTML=`
+    <div class="caso-card">
+      <div class="caso-num">Caso ${caso.n} de ${CASOS.length} · ${caso.cat}</div>
+      <div class="caso-vignette">${caso.vignette}</div>
+      <div class="caso-question">🔍 ${caso.question}</div>
+      <div class="caso-answer" id="caso-answer">
+        <div class="caso-dx">${caso.dx}</div>
+        <div class="caso-exp">${caso.exp}</div>
+        <div class="caso-criterios"><strong style="color:var(--blue2)">Criterios clave:</strong> ${caso.criterios}</div>
+      </div>
+    </div>`;
+}
+
+function revealCaso(){
+  const el=document.getElementById('caso-answer');
+  if(!casoRevealed){el.classList.add('visible');casoRevealed=true;document.getElementById('btn-caso-reveal').textContent='Ocultar respuesta';}
+  else{el.classList.remove('visible');casoRevealed=false;document.getElementById('btn-caso-reveal').textContent='Ver diagnóstico';}
+}
+function nextCaso(){casoIdx=(casoIdx+1)%CASOS.length;renderCaso();}
+function prevCaso(){casoIdx=(casoIdx-1+CASOS.length)%CASOS.length;renderCaso();}
+function randCaso(){casoIdx=Math.floor(Math.random()*CASOS.length);renderCaso();}
+
+// ═══════════════════════════════════════════
+// DIAGNÓSTICO DIFERENCIAL
+// ═══════════════════════════════════════════
+const DIFDIAG = [
+  {
+    pair:'TDAH vs. Trastorno de Ansiedad',
+    desc:'Ambos cursan con dificultad para concentrarse, inquietud e insomnio. La distinción puede ser difícil.',
+    clave:'En TDAH la inatención es pervasiva (también en actividades placenteras). En Ansiedad, la inatención ocurre porque la mente está ocupada con preocupaciones. Pregunta clave: ¿se distrae en videojuegos? El TDAH sí puede enfocarse en estímulos de alta recompensa; la ansiedad también.'
+  },
+  {
+    pair:'Esquizofrenia vs. Trastorno Esquizofreniforme vs. T. Psicótico Breve',
+    desc:'Los tres comparten síntomas del Criterio A. La diferencia es exclusivamente la DURACIÓN.',
+    clave:'T. Psicótico Breve: 1 día–1 mes. T. Esquizofreniforme: 1–6 meses. Esquizofrenia: ≥6 meses. Si en el curso del tiempo se supera el umbral, el diagnóstico cambia. La esquizofrenia además requiere disfunción social/laboral (Criterio B).'
+  },
+  {
+    pair:'T. Depresivo Mayor vs. T. Bipolar II',
+    desc:'El TDM y la fase depresiva del BP-II son clínicamente idénticos. La distinción requiere historia longitudinal.',
+    clave:'SIEMPRE preguntar por historia de hipomanía/manía antes de diagnosticar TDM. Un episodio hipomaníaco previo (aunque sea leve) cambia el diagnóstico a Bipolar II. Pistas hacia bipolar: inicio temprano (<25 años), historia familiar, depresiones frecuentes y breves, hipersomnia marcada.'
+  },
+  {
+    pair:'T. Bipolar I vs. T. Bipolar II',
+    desc:'La confusión más frecuente en exámenes clínicos.',
+    clave:'BP-I: requiere ≥1 episodio MANÍACO (≥7 días, deterioro grave o hospitalización). BP-II: NUNCA ha tenido manía; tiene hipomanía (≥4 días, sin hospitalización ni deterioro grave) + depresión mayor obligatoria. Los pacientes BP-II suelen consultar por depresión, no por hipomanía.'
+  },
+  {
+    pair:'TAG vs. T. Depresivo Mayor',
+    desc:'Ansiedad y depresión coexisten frecuentemente y comparten síntomas (insomnio, concentración, fatiga).',
+    clave:'En TAG el síntoma central es la PREOCUPACIÓN EXCESIVA e incontrolable sobre múltiples temas. En TDM el síntoma central es el ÁNIMO DEPRIMIDO o anhedonia. Pueden ser comórbidos (muy frecuente). DSM-5 agrega el especificador "con ansiedad" al TDM.'
+  },
+  {
+    pair:'T. de Pánico vs. Agorafobia',
+    desc:'Con frecuencia coexisten pero son diagnósticos independientes en DSM-5.',
+    clave:'T. de Pánico: ataques inesperados recurrentes + preocupación/cambio conductual. Agorafobia: miedo a situaciones donde escapar es difícil (transporte, espacios abiertos, multitudes, puentes, estar fuera de casa). Pueden diagnosticarse juntos o por separado (ej: agorafobia sin T. de pánico, o T. de pánico sin agorafobia).'
+  },
+  {
+    pair:'TOC vs. T. Obsesivo-Compulsivo de Personalidad (TOCP)',
+    desc:'Comparten el nombre pero son trastornos completamente distintos en naturaleza y tratamiento.',
+    clave:'TOC: obsesiones EGO-DISTÓNICAS (intrusivas, no deseadas) + compulsiones para reducir ansiedad. El paciente quiere liberarse de ellas. TOCP (Cluster C): perfeccionismo, orden y control como RASGO DE PERSONALIDAD, EGO-SINTÓNICO (el paciente no ve problema). Sin obsesiones ni compulsiones propiamente dichas.'
+  },
+  {
+    pair:'TEPT vs. T. de Estrés Agudo (TEA)',
+    desc:'Mismo evento traumático, mismos grupos de síntomas, diferente momento temporal.',
+    clave:'TEA: síntomas duran 3 días a 1 MES tras el trauma. TEPT: síntomas duran MÁS de 1 mes. Si el TEA se mantiene >1 mes, el diagnóstico cambia a TEPT. El TEA puede incluir más prominencia de síntomas disociativos.'
+  },
+  {
+    pair:'T. Límite de Personalidad vs. T. Bipolar',
+    desc:'Confusión frecuente por la inestabilidad afectiva compartida.',
+    clave:'TLP: cambios de ánimo en HORAS, reactivos a eventos interpersonales (abandono, rechazo). No hay episodios discretos. Bipolar: episodios maníacos/hipomaníacos/depresivos de días a semanas, independientes del contexto interpersonal. Ambos pueden coexistir. Pregunta clave: ¿los cambios de ánimo son reactivos a situaciones relacionales o aparecen espontáneamente?'
+  },
+  {
+    pair:'T. Depresivo Mayor vs. Duelo normal',
+    desc:'DSM-5 eliminó la exclusión por duelo pero la distinción sigue siendo clínicamente relevante.',
+    clave:'Duelo normal: tristeza en oleadas, conserva capacidad de sentir placer, puede imaginarse feliz en el futuro, raramente ideación suicida activa, el ánimo mejora con recuerdos positivos. TDM durante duelo: anhedonia persistente, disforia generalizada, pensamiento de inutilidad/culpa más allá del fallecido, ideación suicida activa. El clínico evalúa si el cuadro va más allá de lo esperable culturalmente.'
+  },
+  {
+    pair:'Fobia Social vs. Personalidad Evitativa',
+    desc:'Superposición clínica muy alta; algunos autores los ven como espectro de un mismo trastorno.',
+    clave:'Fobia Social (T. Ansiedad Social): miedo circunscrito a situaciones de actuación/evaluación social. Personalidad Evitativa: patrón generalizado y estable desde adultez temprana de inhibición social, sentimientos de incompetencia e hipersensibilidad al rechazo en todas las áreas. La PA es más pervasiva, estable y ego-sintónica. Pueden ser comórbidos.'
+  },
+  {
+    pair:'Esquizofrenia vs. T. Esquizoafectivo',
+    desc:'La distinción requiere análisis cuidadoso de la relación temporal entre síntomas afectivos y psicóticos.',
+    clave:'T. Esquizoafectivo: los síntomas psicóticos deben estar presentes ≥2 semanas en AUSENCIA del episodio afectivo. Si la psicosis SOLO ocurre durante episodios afectivos → TDM o Bipolar con psicosis. Si hay esquizofrenia con episodios afectivos superpuestos breves → Esquizofrenia (más probable).'
+  }
+];
+
+function renderDifdiag(){
+  const el=document.getElementById('difdiag-acc');
+  if(!el||el.children.length>0)return;
+  el.innerHTML = DIFDIAG.map((d,i)=>`
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc(this)">
+        ${d.pair}
+        <svg class="acc-arr" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body"><div class="acc-inner">
+        <p style="margin-bottom:10px;color:var(--t2)">${d.desc}</p>
+        <div class="clave"><div class="lbl">🔑 Clave diagnóstica</div>${d.clave}</div>
+      </div></div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════
+// EXTRA QUIZ QUESTIONS (40 more → total 100)
+// ═══════════════════════════════════════════
+const EXTRA_QQ = [
+  {cat:'neuro',q:'¿Cuáles son los 3 dominios de la conducta adaptativa evaluados en la Discapacidad Intelectual DSM-5?',opts:['Verbal, no verbal, ejecutivo','Conceptual, social, práctico','Cognitivo, emocional, conductual','Académico, social, laboral'],a:1,exp:'DSM-5 evalúa 3 dominios adaptativos: Conceptual (lectura, cálculo, lenguaje), Social (empatía, juicio social, comunicación) y Práctico (cuidado personal, manejo del dinero, trabajo). La severidad se basa en estos dominios, no solo en el CI.'},
+  {cat:'neuro',q:'Un niño tiene déficits en comunicación social pragmática pero NO presenta conductas restrictivas ni repetitivas. ¿Cuál es el diagnóstico DSM-5?',opts:['TEA Nivel 1','Trastorno del lenguaje','Trastorno de Comunicación Social','Mutismo selectivo'],a:2,exp:'Trastorno de Comunicación Social (F80.89): Nuevo en DSM-5. Déficits pragmáticos sin los comportamientos restrictivos/repetitivos del Criterio B del TEA. No es TEA porque le falta el Criterio B.'},
+  {cat:'psico',q:'¿Cuál es la diferencia clave entre un delirio "extraño" y uno "no extraño" en el T. Delirante?',opts:['Los extraños incluyen alucinaciones','Los extraños son imposibles físicamente; los no extraños son plausibles aunque improbables','Los extraños ocurren en la esquizofrenia; los no extraños en el T. Bipolar','No hay diferencia clínica relevante'],a:1,exp:'T. Delirante solo permite delirios NO extraños (plausibles: ser seguido, infectado, amado desde lejos). Delirios extraños (imposibles: inserción del pensamiento, control por aliens) sugieren esquizofrenia.'},
+  {cat:'psico',q:'El Criterio F de la Esquizofrenia DSM-5 se refiere a:',opts:['Exclusión de sustancias','Duración de 6 meses','Relación con TEA: si hay TEA previo, se necesitan delirios/alucinaciones prominentes ≥1 mes','Disfunción social obligatoria'],a:2,exp:'Criterio F Esquizofrenia: si hay antecedentes de TEA, el diagnóstico de esquizofrenia SOLO se hace si hay delirios o alucinaciones prominentes durante ≥1 mes además de los síntomas del TEA.'},
+  {cat:'animo',q:'¿Cuál es el especificador del TDM que requiere que el estado de ánimo NO mejore con eventos positivos?',opts:['Con características atípicas','Con características melancólicas','Con inicio en el periparto','Con patrón estacional'],a:1,exp:'"Con características melancólicas": anhedonia profunda o falta de reactividad del ánimo (no mejora con noticias buenas) + ≥3 de: calidad distinta de tristeza, peor en la mañana, despertar temprano (≥2h antes), retraso/agitación psicomotor, anorexia/pérdida de peso significativa, culpa excesiva.'},
+  {cat:'animo',q:'La Disforia Premenstrual (TDPM) en DSM-5:',opts:['Está en Sección III (en estudio)','Fue eliminada del DSM-5','Está en Sección II como trastorno depresivo oficial','Está dentro de los trastornos somáticos'],a:2,exp:'TDPM (F32.81) fue elevada de apéndice (DSM-IV) a Sección II oficial en DSM-5, dentro de los Trastornos Depresivos. Requiere síntomas en la semana previa a la menstruación que mejoran tras el inicio del período.'},
+  {cat:'ansiedad',q:'¿Cuánto tiempo debe persistir la Agorafobia para ser diagnosticada?',opts:['2 semanas','1 mes','6 meses','12 meses'],a:2,exp:'Agorafobia (F40.00): ≥6 meses. El miedo/evitación es a ≥2 situaciones: transporte público, espacios abiertos, espacios cerrados, hacer fila/estar en multitud, estar fuera de casa solo.'},
+  {cat:'ansiedad',q:'El T. de Ansiedad por Separación en adultos DSM-5 dura mínimo:',opts:['4 semanas','3 meses','6 meses','12 meses'],a:2,exp:'T. Ansiedad por Separación en adultos: ≥6 meses. En niños: ≥4 semanas. DSM-5 reconoció que este trastorno persiste en adultos (novedad respecto al DSM-IV que lo limitaba a niños).'},
+  {cat:'ansiedad',q:'El especificador "Con síntomas disociativos" del TEPT implica:',opts:['Amnesia de todo el evento traumático','Despersonalización o desrealización persistentes','Presencia de múltiples identidades','Síntomas de conversión motora'],a:1,exp:'Especificador "Con síntomas disociativos" del TEPT: presencia de despersonalización (sentirse separado de los propios procesos mentales o cuerpo) O desrealización (sensación de irrealidad del entorno). Se añade al diagnóstico de TEPT cuando cumple los criterios completos.'},
+  {cat:'ansiedad',q:'¿Cuál es la característica que diferencia la Tricotilomanía del T. de Excoriación?',opts:['La tricotilomanía es nueva en DSM-5; la excoriación no','Tricotilomanía: arrancamiento de cabello. Excoriación: rascado de la piel','La excoriación ocurre solo en niños','La tricotilomanía requiere delirios de infestación'],a:1,exp:'Tricotilomanía (F63.3): arrancamiento recurrente del propio cabello. T. de Excoriación (L98.1): rascado recurrente de la propia piel causando lesiones. Ambos son trastornos relacionados con TOC. La excoriación es nueva en DSM-5; la tricotilomanía existía en DSM-IV.'},
+  {cat:'persona',q:'¿Cuál es el rasgo distintivo del T. Esquizotípico que lo diferencia del Esquizoide?',opts:['El esquizotípico tiene mayor aislamiento social','El esquizotípico incluye distorsiones cognitivas/perceptivas y pensamiento mágico','El esquizoide tiene comportamientos excéntricos','Son idénticos clínicamente'],a:1,exp:'Esquizoide (F60.1): desapego social + expresión emocional restringida, pero SIN distorsiones cognitivas. Esquizotípico (F21): además incluye pensamiento mágico, ideas de referencia, experiencias perceptivas inusuales, habla rara, suspicacia. El esquizotípico está en el espectro de la esquizofrenia.'},
+  {cat:'persona',q:'El T. Histriónico de Personalidad pertenece al Cluster:',opts:['Cluster A','Cluster B','Cluster C','No tiene cluster'],a:1,exp:'Histriónico (F60.4) es Cluster B (dramático/emocional) junto con Antisocial, Límite y Narcisista. Rasgo central: emotividad excesiva y búsqueda de atención. No confundir con T. Narcisista (necesita admiración vs. el histrónico que solo busca atención).'},
+  {cat:'persona',q:'¿Qué edad mínima se requiere para diagnosticar T. Antisocial de Personalidad?',opts:['15 años','16 años','18 años','21 años'],a:2,exp:'TAP (F60.2): ≥18 años + evidencia de T. de Conducta antes de los 15. El TAP no se diagnostica en menores. Si <18 años con el mismo patrón, se diagnostica Trastorno de Conducta (T. disruptivos, del control de impulsos).'},
+  {cat:'dsm',q:'¿Cuántos trastornos del DSM-IV-TR se unificaron en el TEA del DSM-5?',opts:['2','3','4','5'],a:2,exp:'4 diagnósticos del DSM-IV: (1) Trastorno Autista, (2) Síndrome de Asperger, (3) Trastorno Desintegrativo Infantil, (4) TGD No Especificado → todos unificados en TEA con niveles de severidad 1-2-3.'},
+  {cat:'dsm',q:'En el sistema multiaxial del DSM-IV, ¿en qué eje iban los trastornos de personalidad?',opts:['Eje I','Eje II','Eje III','Eje IV'],a:1,exp:'DSM-IV: Eje I = síndromes clínicos (depresión, esquizofrenia). Eje II = TP y DI. Eje III = condiciones médicas. Eje IV = problemas psicosociales. Eje V = evaluación global (GAF). DSM-5 eliminó este sistema.'},
+  {cat:'dsm',q:'¿Qué es la Sección III del DSM-5?',opts:['Los criterios diagnósticos principales','Condiciones que requieren estudio adicional y el Modelo Alternativo de TP','El glosario de términos','Los criterios para niños y adolescentes'],a:1,exp:'Sección III: (1) Medidas de evaluación dimensional, (2) Formulación cultural, (3) Modelo Alternativo de Trastornos de Personalidad (dimensional), (4) Condiciones en estudio para futuros diagnósticos (ej: T. de juego por internet).'},
+  {cat:'neuro',q:'El nivel 3 del TEA en DSM-5 corresponde a:',opts:['Requiere apoyo','Requiere apoyo sustancial','Requiere apoyo muy sustancial','No requiere apoyo'],a:2,exp:'Niveles TEA: Nivel 1 = Requiere apoyo (comunicación social funcional pero con déficits notables). Nivel 2 = Requiere apoyo sustancial (déficits marcados). Nivel 3 = Requiere apoyo MUY sustancial (déficits severos en comunicación y comportamientos muy interferentes).'},
+  {cat:'psico',q:'¿Cuál es el diagnóstico cuando alguien tiene síntomas de T. de Conducta Y tiene más de 18 años?',opts:['T. Antisocial de Personalidad automáticamente','Puede ser TAP si también cumple los criterios del TAP','Ningún diagnóstico disponible en DSM-5','T. Oposicionista Desafiante del adulto'],a:1,exp:'T. de Conducta puede diagnosticarse en adultos (se añade especificador "con inicio en la adultez"). El TAP requiere historia de T. Conducta ANTES de 15 años. No son equivalentes automáticamente.'},
+  {cat:'animo',q:'¿Cuántos síntomas del Criterio B (somáticos) se requieren para TAG en NIÑOS?',opts:['≥1','≥2','≥3','≥4'],a:0,exp:'En niños, el TAG requiere solo ≥1 síntoma del Criterio B (vs. ≥3 en adultos). Esto reconoce que los niños expresan la ansiedad con menos síntomas somáticos variados.'},
+  {cat:'ansiedad',q:'¿El Trastorno de Adaptación requiere que el estresor sea traumático?',opts:['Sí, debe ser un trauma grave','No, puede ser cualquier estresor identificable','Sí, al menos debe cumplir Criterio A del TEPT','Solo si genera ataques de pánico'],a:1,exp:'T. de Adaptación (F43.2x): respuesta emocional/conductual a un estresor identificable cualquiera (divorcio, pérdida laboral, enfermedad). NO requiere que sea traumático (a diferencia del TEPT y TEA que sí requieren exposición traumática del Criterio A).'},
+  {cat:'persona',q:'¿Cuál es la diferencia principal entre T. Dependiente y T. Evitativo de Personalidad?',opts:['El evitativo quiere relaciones pero teme el rechazo; el dependiente quiere cuidado y se aferra','Son clínicamente idénticos','El dependiente evita todas las relaciones','El evitativo solo afecta en el trabajo'],a:0,exp:'Evitativo (F60.6): quiere relaciones íntimas pero las evita por miedo al rechazo/humillación; inhibición social. Dependiente (F60.7): busca activamente cuidado y apoyo, se aferra a las relaciones existentes, miedo al abandono y a la autonomía. El evitativo evita; el dependiente se adhiere.'},
+  {cat:'animo',q:'Un paciente tiene síntomas hipomaníacos durante ≥4 días pero también tiene un episodio depresivo mayor. Nunca ha tenido manía. ¿Cuál es el diagnóstico?',opts:['T. Bipolar I','T. Bipolar II','Ciclotimia','T. Depresivo Mayor con hipomanía'],a:1,exp:'T. Bipolar II: requiere ≥1 episodio hipomaníaco (≥4 días sin hospitalización ni deterioro grave) + ≥1 episodio depresivo mayor, sin NUNCA haber tenido manía completa. Si hubiera manía → BP-I. Si no hubiera TDM completo → Ciclotimia.'},
+  {cat:'neuro',q:'¿Qué trastorno del neurodesarrollo cursa con dificultad para producir fonemas específicos?',opts:['Trastorno del lenguaje','Trastorno fonológico','Mutismo selectivo','Tartamudeo'],a:1,exp:'Trastorno Fonológico (F80.0): dificultad en la producción de fonemas que interfiere con la inteligibilidad. Diferente del T. del Lenguaje (comprensión/uso general), del Tartamudeo (fluidez) y del Mutismo Selectivo (elección situacional de no hablar).'},
+  {cat:'psico',q:'¿Qué duración tienen los síntomas en el T. Esquizofreniforme?',opts:['1 día a 1 mes','1 mes a 6 meses','Más de 6 meses','Más de 12 meses'],a:1,exp:'T. Esquizofreniforme (F20.81): síntomas igual que esquizofrenia (Criterio A) pero duración total de 1 a 6 meses. Si dura <1 mes → T. Psicótico Breve. Si supera 6 meses → Esquizofrenia.'},
+  {cat:'ansiedad',q:'¿Cuál es el umbral de síntomas del ataque de pánico para considerarse completo vs. limitado?',opts:['≥2 síntomas = completo','≥4 síntomas = completo; <4 síntomas = limitado','≥6 síntomas = completo','No hay distinción en DSM-5'],a:1,exp:'DSM-5 diferencia: ataque de pánico completo (full-blown) = ≥4 síntomas. Ataque de síntomas limitados = <4 síntomas. Solo los ataques completos e inesperados recurrentes configuran el Trastorno de Pánico.'},
+  {cat:'persona',q:'¿Cuántos trastornos de personalidad componen el Cluster A?',opts:['2','3','4','5'],a:1,exp:'Cluster A (raro/excéntrico): 3 trastornos: (1) Paranoide (F60.0), (2) Esquizoide (F60.1), (3) Esquizotípico (F21). Cluster B: 4. Cluster C: 3. Total: 10 TP en Sección II del DSM-5.'},
+  {cat:'dsm',q:'¿Qué especificador del T. Bipolar se añadió en DSM-5?',opts:['Con síntomas melancólicos','Con síntomas mixtos (reemplaza el episodio mixto del DSM-IV)','Con inicio temprano','Con patrón estacional exclusivo'],a:1,exp:'DSM-5 eliminó el "episodio mixto" del DSM-IV y lo reemplazó por el especificador "Con características mixtas" que puede añadirse a episodios maníacos, hipomaníacos o depresivos, requiriendo síntomas del polo opuesto simultáneos.'},
+  {cat:'animo',q:'¿Qué sucede si los síntomas de la Ciclotimia evolucionan a un episodio maníaco completo?',opts:['Se mantiene el diagnóstico de ciclotimia','Se añade T. Bipolar I como diagnóstico comórbido','El diagnóstico cambia a T. Bipolar I y la ciclotimia no se codifica','El diagnóstico cambia a T. Bipolar II'],a:2,exp:'Si en el curso de la Ciclotimia aparece un episodio maníaco completo → el diagnóstico cambia a T. Bipolar I. La Ciclotimia requiere que los síntomas nunca hayan cumplido criterios completos para episodio hipomaníaco, maníaco o depresivo mayor.'},
+  {cat:'psico',q:'¿Cuál es el período mínimo de signos continuos de Esquizofrenia, incluyendo fases prodrómicas y residuales?',opts:['1 mes','3 meses','6 meses','12 meses'],a:2,exp:'Criterio C Esquizofrenia: signos continuos del trastorno ≥6 meses. Este período incluye: al menos 1 mes de síntomas activos del Criterio A + cualquier período prodrómico o residual (síntomas atenuados o negativos).'},
+  {cat:'ansiedad',q:'¿En qué se diferencia el TOC del T. de Ansiedad Social cuando el foco es la apariencia?',opts:['No se diferencian','T. Ansiedad Social: miedo a la evaluación social. T. Dismórfico Corporal: defectos percibidos específicos + comportamientos repetitivos','T. Ansiedad Social afecta solo actuaciones públicas','El T. Dismórfico es un subtipo de ansiedad social'],a:1,exp:'T. Dismórfico Corporal (en capítulo TOC): preocupación por defectos percibidos específicos en la apariencia + comportamientos repetitivos (mirarse, camuflarse). T. Ansiedad Social: miedo a ser evaluado negativamente en general. La preocupación por apariencia en TA es secundaria al miedo social, no al defecto en sí.'},
+  {cat:'persona',q:'¿Qué diferencia al T. Narcisista del T. Antisocial de Personalidad?',opts:['El narcisista no tiene empatía; el antisocial sí','El antisocial viola activamente derechos ajenos; el narcisista explota por grandiosidad, no por desprecio deliberado','Son clínicamente idénticos','El narcisista solo afecta las relaciones íntimas'],a:1,exp:'Ambos pueden ser manipuladores y carecer de empatía. El TAP viola derechos con DESPRECIO deliberado y tiene antecedentes de T. de Conducta. El Narcisista explota porque se cree SUPERIOR (grandiosidad), no por desprecio deliberado. El TAP tiene impulsividad e irresponsabilidad mayor.'},
+  {cat:'neuro',q:'Según DSM-5, ¿cuándo deben estar presentes los síntomas del TDAH para el diagnóstico?',opts:['Antes de los 7 años (en ≥2 contextos)','Antes de los 12 años (en ≥2 contextos)','Antes de los 12 años (en cualquier contexto)','Antes de los 10 años (en ≥3 contextos)'],a:1,exp:'DSM-5 Criterio B TDAH: varios síntomas de inatención o hiperactividad-impulsividad presentes ANTES de los 12 años. Criterio C: presentes en ≥2 contextos (hogar, escuela, trabajo, amigos). El DSM-IV requería síntomas antes de los 7 años.'},
+  {cat:'dsm',q:'¿Cuál de estos trastornos pasó del apéndice del DSM-IV a diagnóstico oficial en Sección II del DSM-5?',opts:['T. de la Tourette','T. de Atracones','T. de Depresión Estacional','T. de Comunicación No Verbal'],a:1,exp:'T. de Atracones (Binge Eating Disorder, BED): estaba en el apéndice del DSM-IV. DSM-5 lo elevó a diagnóstico oficial. También la Disforia Premenstrual pasó del apéndice a Sección II.'},
+  {cat:'animo',q:'El T. Depresivo Persistente (Distimia) requiere que durante el período de ≥2 años el paciente:',opts:['Nunca esté sin síntomas por más de 2 meses','Tenga síntomas diariamente sin excepción','Cumpla criterios completos de TDM siempre','No tenga episodios hipomaníacos'],a:0,exp:'T. Depresivo Persistente: nunca estar sin síntomas por más de 2 meses consecutivos durante el período de 2 años. No requiere síntomas diarios, sino continuidad temporal. Durante ese tiempo nunca hay episodio maníaco ni hipomaníaco.'},
+  {cat:'psico',q:'El T. Esquizoafectivo Tipo Bipolar (F25.0) vs. Tipo Depresivo (F25.1): ¿en qué se diferencian?',opts:['En la duración del episodio psicótico','En el tipo de episodio afectivo: BP incluye manía/hipomanía; Depresivo solo episodios depresivos mayores','En el número de alucinaciones','En la presencia de síntomas negativos'],a:1,exp:'T. Esquizoafectivo Tipo Bipolar (F25.0): incluye episodios maníacos o hipomaníacos (y puede incluir depresivos). Tipo Depresivo (F25.1): SOLO episodios depresivos mayores, sin manía ni hipomanía. La distinción tiene implicaciones de tratamiento (estabilizadores del ánimo vs. antidepresivos).'},
+  {cat:'ansiedad',q:'¿Cuál de estos NO es un síntoma del Criterio D (cogniciones/ánimo negativos) del TEPT?',opts:['Amnesia disociativa del trauma','Creencias negativas persistentes sobre uno mismo','Hipervigilancia constante','Incapacidad para experimentar emociones positivas'],a:2,exp:'La hipervigilancia pertenece al Criterio E (arousal/reactividad alterada), no al D. El Criterio D incluye: amnesia, creencias negativas, culpa distorsionada, emociones negativas persistentes, anhedonia, desapego, incapacidad de emociones positivas.'},
+  {cat:'persona',q:'¿Cuál es la diferencia entre T. Paranoide de Personalidad y Esquizofrenia Paranoide?',opts:['Son el mismo diagnóstico','El T. Paranoide no tiene alucinaciones ni delirios formales; la Esquizofrenia sí','La Esquizofrenia Paranoide ya no existe en DSM-5','El T. Paranoide es solo en mujeres'],a:1,exp:'T. Paranoide de Personalidad (F60.0): suspicacia y desconfianza como RASGO estable, SIN alucinaciones, delirios formales ni deterioro psicótico. La Esquizofrenia tiene síntomas psicóticos activos. Nota: DSM-5 eliminó el subtipo paranoide de esquizofrenia, pero no el Trastorno Paranoide de Personalidad.'},
+  {cat:'dsm',q:'¿Cuál es el primer criterio general para diagnosticar un Trastorno de Personalidad en DSM-5?',opts:['Tener al menos 25 años','Patrón duradero que se desvía de la cultura, inflexible, causa malestar y se remonta a adultez temprana','Puntaje alto en evaluación de rasgos patológicos','Haber tenido al menos un episodio del Eje I previamente'],a:1,exp:'Para cualquier TP: patrón duradero que (A) se desvía marcadamente de las expectativas culturales, (B) es inflexible y abarca múltiples contextos, (C) genera malestar o disfunción, (D) es estable y prolongado con inicio en adolescencia o adultez temprana, (E) no explicado por otro trastorno mental, sustancias o condición médica.'},
+  {cat:'neuro',q:'¿Qué diferencia al Trastorno de Conducta del T. Oposicionista Desafiante?',opts:['El TOD es más grave que el TC','El TC viola derechos ajenos o normas sociales mayores; el TOD involucra conductas negativistas sin llegar a violar derechos','Son el mismo diagnóstico en diferentes edades','El TOD incluye agresión física'],a:1,exp:'T. Oposicionista Desafiante: ira/irritabilidad + conducta desafiante/argumentativa + vengatividad, SIN violar derechos ajenos. T. de Conducta: agresión a personas/animales, destrucción de propiedad, fraude/robo, violaciones graves de normas. El TC es más grave y es antecedente del TAP.'},
+  {cat:'animo',q:'¿Qué es el especificador "Con inicio en el periparto" del TDM?',opts:['Depresión que aparece en cualquier momento del embarazo o 12 meses posparto','Depresión durante el embarazo o en las 4 semanas posteriores al parto','Solo depresión posparto, no durante el embarazo','Solo durante el embarazo, no después'],a:1,exp:'DSM-5: especificador "Con inicio en el periparto" = inicio durante el embarazo o en las 4 semanas siguientes al parto. Puede incluir episodios con o sin características psicóticas. El posparto psicótico es una emergencia psiquiátrica.'},
+  {cat:'ansiedad',q:'¿Cuántas situaciones diferentes debe temer el paciente para que sea Agorafobia?',opts:['Al menos 1 de 5','Al menos 2 de 5','Al menos 3 de 5','Las 5 situaciones'],a:1,exp:'Agorafobia DSM-5: miedo/evitación activa en ≥2 de 5 situaciones: (1) transporte público, (2) espacios abiertos, (3) espacios cerrados, (4) hacer cola o estar en multitud, (5) estar fuera de casa solo. El miedo debe ser a que sería difícil escapar o no habría ayuda.'},
+  {cat:'dsm',q:'El Modelo Alternativo de TP en Sección III del DSM-5 evalúa el funcionamiento de personalidad en:',opts:['3 dominios','4 dominios (identidad, autodirección, empatía, intimidad)','5 dominios','6 dominios'],a:1,exp:'El Modelo Alternativo evalúa funcionamiento en 4 áreas: (1) Identidad, (2) Autodirección (Self), (3) Empatía, (4) Intimidad. Además evalúa Rasgos Patológicos de personalidad: Afecto negativo, Desapego, Antagonismo, Desinhibición, Psicoticismo.'},
+];
+
+// Combine and push extra questions into QQ array
+Array.prototype.push.apply(QQ, EXTRA_QQ);
+// Reset filteredQ
+filteredQ = [...QQ];
+
+// Override show() to also render casos/difdiag
+const _origShow = show;
+window.show = function(id) {
+  _origShow(id);
+  if(id==='casos') renderCaso();
+  if(id==='difdiag') renderDifdiag();
+};
+
+// INIT
+renderQ();renderF();renderCIE();updateKPIs();
+renderDifdiag();
+</script>
+</body>
+</html>
